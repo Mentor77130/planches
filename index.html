@@ -54,6 +54,7 @@ body.tactile .si-clavier, body:not(.tactile) .si-tactile { display: none !import
 /* consignes propres à chaque système : iPhone/iPad, Android, ordinateur */
 body:not(.os-ios) .pour-ios, body:not(.os-android) .pour-android, body:not(.os-ordi) .pour-ordi,
 body.os-ordi .pour-mobile { display: none !important; }
+body:not(.drive-google) .drive-google, body.drive-google .drive-systeme { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 html.lecture { overscroll-behavior: none; }
 button, a, label, summary { -webkit-tap-highlight-color: transparent; }
@@ -601,6 +602,17 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
 
     <section class="case case-drive" aria-labelledby="drive-titre">
       <h2 id="drive-titre">Google Drive</h2>
+      <div class="drive-google">
+        <p>Connectez-vous avec votre compte Google&nbsp;: la liste de vos fichiers Drive s'affiche, choisissez une BD et elle s'ouvre ici.</p>
+        <button class="btn btn-noir" id="btn-gdrive" type="button">Ouvrir mon Google Drive</button>
+        <p class="petit">La BD est téléchargée sur cet appareil, puis gardée pour la reprendre en un clic.</p>
+        <details class="aide">
+          <summary>Autre façon&nbsp;: le sélecteur de fichiers</summary>
+          <p>Avec l'app Google Drive (sur téléphone) ou Google Drive pour ordinateur, votre Drive apparaît aussi dans le sélecteur de fichiers de l'appareil.</p>
+          <button class="lien" type="button" data-choisir>Ouvrir le sélecteur de fichiers</button>
+        </details>
+      </div>
+      <div class="drive-systeme">
       <div class="pour-ordi">
         <p>Avec l'app Google Drive pour ordinateur, connectée à votre compte Gmail, votre Drive apparaît dans le sélecteur de fichiers comme un disque.</p>
         <button class="btn" id="btn-drive" type="button" data-choisir>Ouvrir depuis Google Drive</button>
@@ -625,12 +637,13 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
           <li>Touchez la BD&nbsp;: elle s'ouvre aussitôt.</li>
         </ol>
       </div>
+      </div>
     </section>
 
     <section class="case case-icloud" aria-labelledby="icloud-titre">
       <h2 id="icloud-titre">iCloud Drive</h2>
       <div class="pour-ios">
-        <p>Les BD rangées dans iCloud Drive sont dans le sélecteur de fichiers de <span data-appareil>l'iPhone</span>.</p>
+        <p>Apple ne permet à aucun site web d'afficher directement votre iCloud Drive. Vos BD qui s'y trouvent s'ouvrent par le sélecteur de fichiers de <span data-appareil>l'iPhone</span>&nbsp;:</p>
         <button class="btn" id="btn-icloud-ios" type="button" data-choisir>Ouvrir depuis iCloud Drive</button>
         <ol class="etapes">
           <li>Touchez «&nbsp;Choisir le fichier&nbsp;».</li>
@@ -642,7 +655,7 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
         <a class="btn" href="https://www.icloud.com/iclouddrive/" target="_blank" rel="noopener">Aller sur icloud.com</a>
       </div>
       <div class="pour-ordi">
-        <p>Sur Mac, iCloud Drive apparaît dans le sélecteur de fichiers. Sur Windows, il y apparaît une fois l'app iCloud installée.</p>
+        <p>Apple ne permet à aucun site web d'afficher directement votre iCloud Drive. Sur Mac, il apparaît dans le sélecteur de fichiers&nbsp;; sur Windows, une fois l'app iCloud installée.</p>
         <button class="btn" id="btn-icloud" type="button" data-choisir>Ouvrir depuis iCloud</button>
       </div>
     </section>
@@ -784,6 +797,7 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
   <div class="fenetre" role="status">
     <p id="chargement-texte">Ouverture…</p>
     <div class="barre-progres" id="chargement-barre"><i></i></div>
+    <div class="fenetre-actions" id="chargement-actions" hidden><button class="btn" type="button" id="chargement-annuler">Annuler</button></div>
   </div>
 </div>
 
@@ -791,7 +805,8 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
 <!-- Le champ reste dans la page (invisible, pas display:none) : iOS et Android l'ouvrent ainsi de façon fiable. -->
 <input type="file" id="fichier" class="sr" tabindex="-1" aria-hidden="true">
 
-<script src="formats.js?v=202611071647"></script>
+<script src="config.js?v=202611072124"></script>
+<script src="formats.js?v=202611072124"></script>
 <script>
 (() => {
 'use strict';
@@ -1099,7 +1114,7 @@ class RarBook extends Book {
   static open(file) {
     return new Promise((resolve, reject) => {
       let worker;
-      try { worker = new Worker('rar-worker.js?v=202611071647'); }
+      try { worker = new Worker('rar-worker.js?v=202611072124'); }
       catch (e) { RarBook.openInline(file).then(resolve, reject); return; }
       const book = new RarBook(titleFrom(file.name));
       const id = ++workerSeq;
@@ -1345,9 +1360,26 @@ async function detectKind(file) {
 }
 
 const Loading = {
-  show(text) { $('#chargement-texte').textContent = text; const b = $('#chargement-barre'); b.classList.remove('determinee'); b.firstElementChild.style.width = ''; $('#chargement').hidden = false; },
-  hide() { $('#chargement').hidden = true; },
+  onCancel: null,
+  show(text, onCancel) {
+    $('#chargement-texte').textContent = text;
+    const b = $('#chargement-barre');
+    b.classList.remove('determinee');
+    b.firstElementChild.style.width = '';
+    this.onCancel = onCancel || null;
+    $('#chargement-actions').hidden = !onCancel;
+    $('#chargement').hidden = false;
+  },
+  /** Progression connue (0 à 1), avec un texte qui peut changer. */
+  progress(frac, text) {
+    const b = $('#chargement-barre');
+    b.classList.add('determinee');
+    b.firstElementChild.style.width = Math.round(Math.max(0.02, Math.min(1, frac)) * 100) + '%';
+    if (text) $('#chargement-texte').textContent = text;
+  },
+  hide() { $('#chargement').hidden = true; this.onCancel = null; },
 };
+$('#chargement-annuler').addEventListener('click', () => { const f = Loading.onCancel; Loading.hide(); if (f) f(); });
 
 async function openFiles(fileList, opts = {}) {
   const files = Array.from(fileList || []).filter(Boolean);
@@ -1380,22 +1412,24 @@ async function openFiles(fileList, opts = {}) {
     Loading.hide();
     const key = opts.key || fileKey(file);
     Reader.open(book, key, opts.resume);
-    if (!opts.noLibrary) Library.add(key, book, [file]);
+    if (!opts.noLibrary) Library.add(key, book, [file], opts.library);
   } catch (err) {
     Loading.hide();
     showError(err);
   }
 }
 
-function showError(err) {
+function showError(err, title) {
   console.warn(err);
   const known = err instanceof BookError || (err && err.name === 'RarError');
-  showMessage("Impossible d'ouvrir ce fichier", known ? err.message : 'Erreur inattendue : ' + (err && err.message || err));
+  showMessage(title || "Impossible d'ouvrir ce fichier", known ? err.message : 'Erreur inattendue : ' + (err && err.message || err), err && err.retry ? 'Réessayer' : null, err && err.retry);
 }
-function showMessage(title, text, action) {
+let messageAction = null;
+function showMessage(title, text, action, fn) {
   $('#message-titre').textContent = title;
   $('#message-texte').textContent = text;
   $('#message-ouvrir').textContent = action || 'Choisir un autre fichier';
+  messageAction = fn || null;
   openModal('#message');
 }
 
@@ -1415,7 +1449,12 @@ function modalOpen() { return $$('.voile').some((m) => !m.hidden) || !$('#charge
 $$('.voile').forEach((m) => {
   m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-fermer]')) closeModal(m); });
 });
-$('#message-ouvrir').addEventListener('click', () => { closeModal($('#message')); pickFile(); });
+$('#message-ouvrir').addEventListener('click', () => {
+  const fn = messageAction || pickFile;
+  messageAction = null;
+  closeModal($('#message'));
+  fn();
+});
 
 function askPassword(again) {
   return new Promise((resolve) => {
@@ -2299,10 +2338,12 @@ const Library = {
     if (this.ready) return this.ready;
     this.ready = new Promise((resolve) => {
       let req;
-      try { req = indexedDB.open('planches', 1); } catch (e) { resolve(null); return; }
+      try { req = indexedDB.open('planches', 2); } catch (e) { resolve(null); return; }
       req.onupgradeneeded = () => {
         const db = req.result;
         for (const name of ['livres', 'fichiers', 'vignettes']) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' });
+        // BD venues de Google Drive : gardées par morceaux, écrits au fil du téléchargement
+        if (!db.objectStoreNames.contains('morceaux')) db.createObjectStore('morceaux', { keyPath: 'id' });
       };
       req.onsuccess = () => {
         const db = req.result;
@@ -2343,46 +2384,66 @@ const Library = {
   },
   files(key) { return this.run(['fichiers'], 'readonly', (t) => t.objectStore('fichiers').get(key)).catch(() => null); },
   cover(key) { return this.run(['vignettes'], 'readonly', (t) => t.objectStore('vignettes').get(key)).catch(() => null); },
+  chunkRange(key) { return IDBKeyRange.bound(key + '#', key + '#\uffff'); },
+  chunkId(key, n) { return key + '#' + String(n).padStart(6, '0'); },
+  putChunk(key, n, blob) { return this.run(['morceaux'], 'readwrite', (t) => t.objectStore('morceaux').put({ id: this.chunkId(key, n), blob })); },
+  async getChunk(key, n) {
+    const r = await this.run(['morceaux'], 'readonly', (t) => t.objectStore('morceaux').get(this.chunkId(key, n))).catch(() => null);
+    return r && r.blob;
+  },
+  async chunks(key) {
+    const all = await this.run(['morceaux'], 'readonly', (t) => t.objectStore('morceaux').getAll(this.chunkRange(key))).catch(() => []);
+    return (all || []).map((r) => r.blob);
+  },
+  deleteChunks(key) { return this.run(['morceaux'], 'readwrite', (t) => t.objectStore('morceaux').delete(this.chunkRange(key))).catch(() => {}); },
   async dropFiles(key) {
     await this.run(['fichiers'], 'readwrite', (t) => t.objectStore('fichiers').delete(key)).catch(() => {});
-    await this.update(key, { stored: false });
+    await this.deleteChunks(key);
+    await this.update(key, { stored: false, chunks: 0 });
   },
   async remove(key) {
     await this.run(['livres', 'fichiers', 'vignettes'], 'readwrite', (t) => {
       for (const name of ['livres', 'fichiers', 'vignettes']) t.objectStore(name).delete(key);
     }).catch(() => {});
+    await this.deleteChunks(key);
     store.set('pos:' + key, null);
   },
-  /** BD qu'on vient d'ouvrir : on la note, puis on en garde une copie si la place le permet. */
-  async add(key, book, files) {
-    try {
-      const prev = await this.get(key);
-      const size = files.reduce((n, f) => n + (f.size || 0), 0);
-      const rec = Object.assign({ stored: false, page: 0, frac: 0, done: false, added: Date.now() }, prev || {}, {
-        key, title: book.title, name: files[0].name, names: files.map((f) => f.name), size,
-        pages: book.pages.length, lastRead: Date.now(),
-      });
-      await this.put(rec);
-      await this.prune();
-      renderLibrary();
-      if (!rec.stored) await this.keep(rec, files);
-    } catch (e) { console.warn('Bibliothèque', e); }
-  },
-  /** Copie du fichier dans le navigateur : d'abord la place, en libérant les lectures les plus anciennes. */
-  async keep(rec, files) {
+  /** Assez de place pour garder `size` octets ? Libère au besoin les lectures les plus anciennes. */
+  async room(size, exceptKey) {
     let budget = this.BUDGET;
     try {
       const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
       if (est && est.quota) budget = Math.min(budget, est.quota * 0.7);
     } catch (e) { /* estimation indisponible */ }
-    if (rec.size > budget) { await this.update(rec.key, { stored: false, tooBig: true }); renderLibrary(); return; }
-    const others = (await this.list()).filter((r) => r.stored && r.key !== rec.key).sort((a, b) => a.lastRead - b.lastRead);
+    if (size > budget) return false;
+    const others = (await this.list()).filter((r) => r.stored && r.key !== exceptKey).sort((a, b) => a.lastRead - b.lastRead);
     let used = others.reduce((n, r) => n + (r.size || 0), 0);
-    while (used + rec.size > budget && others.length) {
+    while (used + size > budget && others.length) {
       const old = others.shift();
       await this.dropFiles(old.key);
       used -= old.size || 0;
     }
+    return used + size <= budget;
+  },
+  /** BD qu'on vient d'ouvrir : on la note, puis on en garde une copie si la place le permet. */
+  async add(key, book, files, extra) {
+    try {
+      const prev = await this.get(key);
+      const size = files.reduce((n, f) => n + (f.size || 0), 0);
+      const rec = Object.assign({ stored: false, page: 0, frac: 0, done: false, added: Date.now() }, prev || {}, {
+        key, title: book.title, name: files[0].name, names: files.map((f) => f.name), size, type: files[0].type || '',
+        pages: book.pages.length, lastRead: Date.now(),
+      }, extra || {});
+      await this.put(rec);
+      await this.prune();
+      renderLibrary();
+      // une BD de Google Drive est déjà gardée, morceau par morceau, pendant son téléchargement
+      if (!rec.stored && rec.source !== 'gdrive') await this.keep(rec, files);
+    } catch (e) { console.warn('Bibliothèque', e); }
+  },
+  /** Copie du fichier dans le navigateur : d'abord la place, en libérant les lectures les plus anciennes. */
+  async keep(rec, files) {
+    if (!(await this.room(rec.size, rec.key))) { await this.update(rec.key, { stored: false, tooBig: true }); renderLibrary(); return; }
     try {
       await this.run(['fichiers'], 'readwrite', (t) => t.objectStore('fichiers').put({ key: rec.key, files }));
       await this.update(rec.key, { stored: true, tooBig: false });
@@ -2441,17 +2502,30 @@ async function openFromLibrary(key) {
   const resume = rec.done ? null : { i: rec.page || 0, f: rec.frac || 0 };
   if (rec.stored) {
     Loading.show('Ouverture de « ' + rec.title + ' »…');
-    const entry = await Library.files(key);
-    const blobs = entry && entry.files;
-    if (blobs && blobs.length) {
-      const names = rec.names || [rec.name];
-      const files = blobs.map((b, i) => (b instanceof File ? b : new File([b], names[i] || rec.name, { type: b.type || '' })));
+    let files = null;
+    if (rec.chunks) {
+      const parts = await Library.chunks(key);
+      if (parts.length === rec.chunks) files = [new File(parts, rec.name, { type: rec.type || '' })];
+    } else {
+      const entry = await Library.files(key);
+      const blobs = entry && entry.files;
+      if (blobs && blobs.length) {
+        const names = rec.names || [rec.name];
+        files = blobs.map((b, i) => (b instanceof File ? b : new File([b], names[i] || rec.name, { type: b.type || '' })));
+      }
+    }
+    if (files) {
       await openFiles(files, { key, title: rec.title, resume, noLibrary: true });
       if (Reader.book) Library.update(key, { lastRead: Date.now() });
       return;
     }
     Loading.hide();
-    await Library.update(key, { stored: false });
+    await Library.dropFiles(key);
+  }
+  // venue de Google Drive : on la télécharge de nouveau, la lecture reprendra au bon endroit
+  if (rec.source === 'gdrive' && GoogleDrive.enabled) {
+    await openGoogleDrive({ id: rec.driveId, name: rec.name, mimeType: rec.type, sizeBytes: rec.size, title: rec.title });
+    return;
   }
   // aucune copie sur l'appareil : on redemande le fichier, la lecture reprendra au bon endroit
   relinkFor = rec;
@@ -2459,6 +2533,192 @@ async function openFromLibrary(key) {
   showMessage('Rouvrir « ' + rec.title + ' »',
     (rec.tooBig ? "Cette BD est trop lourde pour être gardée sur l'appareil. " : "Cette BD n'est plus gardée sur l'appareil. ")
     + 'Choisissez à nouveau son fichier (' + rec.name + ')' + NB + ': la lecture reprendra ' + where + '.', 'Choisir le fichier');
+}
+
+// ====================================================================
+//  Google Drive : connexion au compte Google, liste des fichiers dans le sélecteur de Google,
+//  puis téléchargement par morceaux, gardés sur l'appareil au fil de l'eau (mémoire basse,
+//  même pour une BD de 700 Mo sur iPhone). Réglages : config.js.
+// ====================================================================
+const GOOGLE = window.PLANCHES_GOOGLE || {};
+const DRIVE_TYPES = ['application/pdf', 'application/zip', 'application/x-zip-compressed', 'application/x-cbz',
+  'application/vnd.comicbook+zip', 'application/x-cbr', 'application/x-rar', 'application/x-rar-compressed', 'application/vnd.rar',
+  'application/vnd.comicbook-rar', 'application/x-cbt', 'application/x-tar', 'application/octet-stream',
+  'image/jpeg', 'image/png', 'image/webp'].join(',');
+const GoogleDrive = {
+  enabled: !!(GOOGLE.clientId && GOOGLE.appId),
+  SCOPE: 'https://www.googleapis.com/auth/drive.file',
+  CHUNK: 8 * 1048576,
+  token: null,
+  expires: 0,
+  client: null,
+  ready: null,
+  /** Bibliothèques de Google (connexion, sélecteur), chargées seulement quand on s'en sert. */
+  load() {
+    if (this.ready) return this.ready;
+    const script = (src) => new Promise((resolve, reject) => {
+      const el = document.createElement('script');
+      el.src = src;
+      el.async = true;
+      el.onload = resolve;
+      el.onerror = () => reject(new BookError('Google Drive ne répond pas. Vérifiez la connexion à internet, puis réessayez.'));
+      document.head.appendChild(el);
+    });
+    this.ready = Promise.all([script('https://accounts.google.com/gsi/client'), script('https://apis.google.com/js/api.js')])
+      .then(() => new Promise((resolve, reject) => {
+        window.gapi.load('picker', { callback: resolve, onerror: () => reject(new BookError('Le sélecteur de Google Drive ne se charge pas.')) });
+      }))
+      .then(() => {
+        // les réponses de Google sont aiguillées vers la demande en cours
+        this.client = window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE.clientId, scope: this.SCOPE,
+          callback: (resp) => { if (this.onToken) this.onToken(resp); },
+          error_callback: (err) => { if (this.onError) this.onError(err); },
+        });
+      })
+      .catch((e) => { this.ready = null; throw e; });
+    return this.ready;
+  },
+  /** Jeton d'accès : la fenêtre de Google s'ouvre (connexion, accord) si besoin. */
+  authorize() {
+    if (this.token && Date.now() < this.expires - 60000) return Promise.resolve(this.token);
+    return new Promise((resolve, reject) => {
+      this.onToken = (resp) => {
+        if (!resp || resp.error) {
+          reject(Object.assign(new BookError("Google n'a pas donné accès à votre Drive" + (resp && resp.error ? ' (' + resp.error + ')' : '') + '.'), { code: resp && resp.error }));
+          return;
+        }
+        this.token = resp.access_token;
+        this.expires = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+        resolve(this.token);
+      };
+      this.onError = (err) => {
+        const type = err && err.type;
+        reject(Object.assign(new BookError(type === 'popup_failed_to_open'
+          ? 'Votre navigateur a bloqué la fenêtre de connexion à Google. Touchez « Réessayer » pour l\'ouvrir.'
+          : 'La connexion à Google a été interrompue.'), { code: type, retry: type === 'popup_failed_to_open' ? () => openGoogleDrive() : null }));
+      };
+      this.client.requestAccessToken({ prompt: '' });
+    });
+  },
+  /** Le sélecteur de Google : les fichiers et dossiers du Drive, filtrés sur les BD. */
+  pick(token) {
+    return new Promise((resolve) => {
+      const P = window.google.picker;
+      const view = new P.DocsView(P.ViewId.DOCS).setIncludeFolders(true).setSelectFolderEnabled(false)
+        .setMode(P.DocsViewMode.LIST).setMimeTypes(DRIVE_TYPES);
+      const builder = new P.PickerBuilder()
+        .setOAuthToken(token)
+        .setAppId(GOOGLE.appId)
+        .setLocale('fr')
+        .setTitle('Choisissez une BD')
+        .addView(view)
+        .setCallback((data) => {
+          const action = data[P.Response.ACTION];
+          if (action === P.Action.PICKED) {
+            const d = data[P.Response.DOCUMENTS][0];
+            resolve({ id: d[P.Document.ID], name: d[P.Document.NAME], mimeType: d[P.Document.MIME_TYPE], sizeBytes: Number(d.sizeBytes) || 0 });
+          } else if (action === P.Action.CANCEL) resolve(null);
+        });
+      if (GOOGLE.apiKey) builder.setDeveloperKey(GOOGLE.apiKey);
+      // téléphone : le sélecteur occupe tout l'écran, sans colonne de navigation
+      if (window.innerWidth < 700) builder.enableFeature(P.Feature.NAV_HIDDEN).setSize(window.innerWidth, window.innerHeight);
+      builder.build().setVisible(true);
+    });
+  },
+  httpError(status) {
+    if (status === 401) { this.token = null; return Object.assign(new BookError('La connexion à Google a expiré.'), { retry: () => openGoogleDrive() }); }
+    if (status === 403) return new BookError('Google Drive refuse ce téléchargement (droits du fichier ou limite de téléchargements atteinte). Réessayez plus tard.');
+    if (status === 404) return new BookError('Ce fichier est introuvable dans votre Google Drive.');
+    return Object.assign(new BookError('Google Drive a répondu par une erreur (' + status + ').'), { retry: () => openGoogleDrive() });
+  },
+  async meta(id, token) {
+    const r = await fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) + '?fields=id,name,mimeType,size&supportsAllDrives=true', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) throw this.httpError(r.status);
+    return r.json();
+  },
+  /** Téléchargement par morceaux ; chacun est écrit sur l'appareil dès son arrivée. */
+  async download(doc, token, key, onProgress, signal) {
+    const url = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(doc.id) + '?alt=media&supportsAllDrives=true';
+    const size = doc.size || 0;
+    let keep = size > 0 && await Library.room(size, key);
+    await Library.deleteChunks(key);
+    const parts = [];
+    let n = 0, got = 0;
+    do {
+      const headers = { Authorization: 'Bearer ' + token };
+      if (size) headers.Range = 'bytes=' + got + '-' + (Math.min(size, got + this.CHUNK) - 1);
+      const r = await fetch(url, { headers, signal });
+      if (!r.ok) throw this.httpError(r.status);
+      let blob = await r.blob();
+      if (keep) {
+        try {
+          await Library.putChunk(key, n, blob);
+          // la copie gardée remplace celle en mémoire
+          blob = (await Library.getChunk(key, n)) || blob;
+        } catch (e) { keep = false; }
+      }
+      parts.push(blob);
+      n++;
+      got += blob.size;
+      onProgress(got, size);
+    } while (size && got < size);
+    if (!keep) await Library.deleteChunks(key);
+    return { file: new File(parts, doc.name, { type: doc.mimeType || '' }), chunks: keep ? n : 0 };
+  },
+};
+
+/** Bouton « Ouvrir mon Google Drive » (ou une BD de l'étagère à télécharger de nouveau). */
+async function openGoogleDrive(known) {
+  let token;
+  try {
+    if (!GoogleDrive.client) {
+      Loading.show('Connexion à Google Drive…');
+      await GoogleDrive.load();
+      Loading.hide();
+    }
+    token = await GoogleDrive.authorize();
+  } catch (e) {
+    Loading.hide();
+    if (e && e.code === 'popup_closed') return;
+    showError(e, 'Google Drive');
+    return;
+  }
+  let doc = known || null;
+  if (!doc) {
+    try { doc = await GoogleDrive.pick(token); } catch (e) { showError(e, 'Google Drive'); return; }
+    if (!doc) return;
+  }
+  const key = 'gdrive:' + doc.id;
+  const prev = await Library.get(key);
+  // déjà gardée sur l'appareil : ouverture immédiate
+  if (!known && prev && prev.stored) { await openFromLibrary(key); return; }
+  const ctrl = new AbortController();
+  const title = doc.title || (prev && prev.title) || titleFrom(doc.name);
+  Loading.show('Téléchargement de « ' + title + ' » depuis Google Drive…', () => ctrl.abort());
+  try {
+    const m = await GoogleDrive.meta(doc.id, token);
+    const info = { id: doc.id, name: m.name || doc.name, mimeType: m.mimeType || doc.mimeType || '', size: Number(m.size) || doc.sizeBytes || 0 };
+    const res = await GoogleDrive.download(info, token, key, (got, total) => {
+      Loading.progress(total ? got / total : 0.5, 'Téléchargement de « ' + title + ' » depuis Google Drive' + NB + ': '
+        + fmtBytes(got) + (total ? ' sur ' + fmtBytes(total) : '') + '…');
+    }, ctrl.signal);
+    Loading.hide();
+    const resume = prev && !prev.done ? { i: prev.page || 0, f: prev.frac || 0 } : null;
+    await openFiles([res.file], { key, title, resume,
+      library: { source: 'gdrive', driveId: doc.id, chunks: res.chunks, stored: res.chunks > 0, tooBig: !res.chunks } });
+  } catch (e) {
+    Loading.hide();
+    if (e && e.name === 'AbortError') return;
+    showError(e, 'Google Drive');
+  }
+}
+if (GoogleDrive.enabled) {
+  document.body.classList.add('drive-google');
+  const btn = $('#btn-gdrive');
+  btn.addEventListener('click', () => openGoogleDrive());
+  // dès qu'on s'approche du bouton, on prépare Google : la fenêtre de connexion s'ouvrira sans être bloquée
+  for (const ev of ['pointerenter', 'touchstart', 'focus']) btn.addEventListener(ev, () => { GoogleDrive.load().catch(() => {}); }, { passive: true, once: true });
 }
 
 let coverUrls = [];
@@ -2755,7 +3015,7 @@ $('#btn-demo').addEventListener('click', async () => {
 });
 
 // petit point d'accès pour les tests automatisés
-window.__planches = { openFiles, Reader, makeDemo, PdfBook, RarBook, Library };
+window.__planches = { openFiles, Reader, makeDemo, PdfBook, RarBook, Library, GoogleDrive };
 })();
 </script>
 </body>
