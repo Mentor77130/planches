@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confidentialité – Planches</title>
+<meta name="description" content="Ce que Planches fait de vos BD et de votre Google Drive : tout reste sur votre appareil.">
+<meta name="theme-color" content="#ffffff">
+<link rel="canonical" href="https://mentor77130.github.io/planches/confidentialite.html">
+<link rel="icon" type="image/png" sizes="32x32" href="icone-32.png">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..800;1,300..800&display=swap">
+<style>
+:root {
+  --encre: #000;
+  --papier: #fff;
+  --ciel: #8ccbeb;
+  --soleil: #ffcf3f;
+  --trait: 3px;
+  --font: "Shantell Sans", "Comic Neue", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-family: var(--font); font-size: 17px; line-height: 1.55; color: var(--encre); background: var(--papier); }
+a { color: inherit; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--soleil); outline-offset: 2px; box-shadow: 0 0 0 6px var(--encre); }
+h1, h2, p, ul { margin: 0; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 20px 40px; display: grid; gap: 14px; }
+.case { border: var(--trait) solid var(--encre); padding: 20px 24px 22px; }
+.entete { display: grid; gap: 16px; }
+.logo { display: inline-block; font-size: 56px; font-weight: 800; line-height: .9; letter-spacing: -.035em; text-decoration: none; transform: rotate(-2deg); transform-origin: left bottom; }
+h1 { font-size: 30px; line-height: 1.15; margin-top: 10px; }
+.recitatif { background: var(--soleil); border: 2px solid var(--encre); padding: 10px 14px; font-size: 18px; line-height: 1.4; }
+h2 { font-size: 22px; line-height: 1.2; margin-bottom: 8px; }
+p + p, p + ul, ul + p { margin-top: 10px; }
+ul { padding-left: 1.2em; }
+li + li { margin-top: 6px; }
+.case-drive { background: var(--ciel); }
+.pied { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; font-size: 14px; padding: 4px 2px 0; }
+@media (max-width: 560px) {
+  main { padding: 16px 14px 32px; gap: 10px; }
+  .case { padding: 16px 16px 18px; }
+  .logo { font-size: 44px; }
+  h1 { font-size: 26px; }
+  .recitatif { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header class="case entete">
+    <div>
+      <a class="logo" href="./">Planches</a>
+      <h1>Confidentialité</h1>
+    </div>
+    <p class="recitatif">Vos BD restent sur votre appareil. Planches n'a ni compte, ni serveur qui reçoit vos fichiers, ni publicité, ni mesure d'audience.</p>
+  </header>
+
+  <section class="case">
+    <h2>Les BD que vous ouvrez</h2>
+    <p>Un fichier choisi sur votre appareil, dans iCloud Drive ou par le sélecteur de fichiers est lu par votre navigateur lui-même&nbsp;: il n'est envoyé nulle part.</p>
+    <p>Pour que vous puissiez reprendre une lecture en un clic, le navigateur garde sur cet appareil, et seulement sur celui-ci, une copie de la BD, l'image de sa couverture et la page où vous vous êtes arrêté. Quand la place manque, les copies les plus anciennes sont effacées.</p>
+    <p>Pour tout effacer&nbsp;: touchez «&nbsp;Retirer&nbsp;» sous une BD de l'étagère «&nbsp;Reprendre la lecture&nbsp;», ou effacez les données du site dans les réglages de votre navigateur.</p>
+  </section>
+
+  <section class="case case-drive">
+    <h2>Google Drive</h2>
+    <p>Si vous touchez «&nbsp;Ouvrir mon Google Drive&nbsp;»&nbsp;:</p>
+    <ul>
+      <li>vous vous connectez dans une fenêtre de Google&nbsp;; Planches ne voit jamais votre mot de passe&nbsp;;</li>
+      <li>Planches demande une seule autorisation, «&nbsp;drive.file&nbsp;», limitée aux fichiers que vous choisissez vous-même dans le sélecteur de Google. Le reste de votre Drive lui reste inaccessible, et il se contente de lire les fichiers choisis&nbsp;: il n'en modifie ni n'en supprime aucun&nbsp;;</li>
+      <li>la BD choisie est téléchargée directement depuis Google vers votre appareil, puis gardée comme expliqué plus haut&nbsp;;</li>
+      <li>l'autorisation donnée par Google reste en mémoire le temps de votre visite&nbsp;: elle n'est pas enregistrée et n'est transmise qu'à Google.</li>
+    </ul>
+    <p>Vous pouvez retirer cet accès à tout moment depuis <a href="https://myaccount.google.com/permissions">votre compte Google</a>.</p>
+    <p>L'utilisation des informations reçues des API Google respecte le <a href="https://developers.google.com/terms/api-services-user-data-policy?hl=fr">Règlement sur les données utilisateur dans les services d'API Google</a>, y compris les exigences d'utilisation limitée.</p>
+  </section>
+
+  <section class="case">
+    <h2>Services utilisés par le site</h2>
+    <p>Le site est hébergé par GitHub Pages et sa police d'écriture vient de Google Fonts. Comme pour toute page web, ces services reçoivent l'adresse IP de votre appareil quand ils envoient leurs fichiers&nbsp;; Planches n'y ajoute aucune information sur vous. Les outils de connexion de Google ne sont chargés que lorsque vous vous servez du bouton Google Drive.</p>
+  </section>
+
+  <section class="case">
+    <h2>Une question&nbsp;?</h2>
+    <p>Posez-la sur la <a href="https://github.com/Mentor77130/planches/issues">page du projet</a>.</p>
+  </section>
+
+  <footer class="pied">
+    <a href="./">Retour à Planches</a>
+    <span>Mise à jour le 7 novembre 2026</span>
+  </footer>
+</main>
+</body>
+</html>
