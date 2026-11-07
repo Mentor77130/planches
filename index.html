@@ -1,0 +1,2762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planches – lecteur de BD CBZ, CBR et PDF</title>
+<meta name="description" content="Lisez vos BD, mangas et PDF d'un seul défilement, en plein écran, sur ordinateur, iPhone et Android. Fichiers CBZ, CBR, CBT et PDF, depuis votre appareil, Google Drive ou iCloud Drive. Rien n'est envoyé sur internet.">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icone-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planches">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="Planches">
+<meta property="og:title" content="Planches, le lecteur de BD qui se lit d'un seul défilement">
+<meta property="og:description" content="CBZ, CBR et PDF en plein écran, sur ordinateur, iPhone et Android. Gratuit, sans compte, rien n'est envoyé sur internet.">
+<meta property="og:url" content="https://mentor77130.github.io/planches/">
+<meta property="og:image" content="https://mentor77130.github.io/planches/partage.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://mentor77130.github.io/planches/">
+<link rel="icon" type="image/png" sizes="32x32" href="icone-32.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%272%27 y=%272%27 width=%2728%27 height=%2728%27 fill=%27%23ffcf3f%27 stroke=%27%23000%27 stroke-width=%273%27/%3E%3Cpath d=%27M2 14h28M14 14v16%27 stroke=%27%23000%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..800;1,300..800&display=swap">
+<style>
+/* ------------------------------------------------------------------
+   Planches — un lecteur de BD dont l'accueil est lui-même une planche :
+   cases cernées d'encre, gouttières blanches, aplats de couleur.
+   ------------------------------------------------------------------ */
+:root {
+  --encre: #000;
+  --papier: #fff;
+  --ciel: #8ccbeb;
+  --soleil: #ffcf3f;
+  --rouge: #e0262f;
+  --gris-doux: #b9b9b9;
+  --trait: 3px;
+  --gouttiere: 14px;
+  --font: "Shantell Sans", "Comic Neue", "Trebuchet MS", system-ui, sans-serif;
+  --fond-lecture: #000;
+  color-scheme: light;
+}
+/* Un seul univers visuel (la planche imprimée), quel que soit le thème de l'appareil ;
+   le lecteur passe sur fond sombre de façon explicite. */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body.tactile .si-clavier, body:not(.tactile) .si-tactile { display: none !important; }
+/* consignes propres à chaque système : iPhone/iPad, Android, ordinateur */
+body:not(.os-ios) .pour-ios, body:not(.os-android) .pour-android, body:not(.os-ordi) .pour-ordi,
+body.os-ordi .pour-mobile { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+html.lecture { overscroll-behavior: none; }
+button, a, label, summary { -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--encre);
+  background: var(--papier);
+  overflow-anchor: none;
+}
+body.lecture { background: var(--fond-lecture); color-scheme: dark; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--soleil); outline-offset: 2px; box-shadow: 0 0 0 6px var(--encre); }
+h1, h2, p { margin: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#fichier { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* ---------------------------------------------------------- accueil */
+.planche {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 20px 32px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--gouttiere);
+}
+.case {
+  position: relative;
+  border: var(--trait) solid var(--encre);
+  background: var(--papier);
+  padding: 22px 24px 24px;
+  min-width: 0;
+}
+.case h2 { font-size: 26px; line-height: 1.15; font-weight: 700; margin-bottom: 8px; text-wrap: balance; }
+.case p + p { margin-top: 8px; }
+.case .btn { margin-top: 16px; }
+.petit { font-size: 14px; line-height: 1.4; }
+
+.case-titre {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 24px 22px;
+  overflow: hidden;
+}
+.logo {
+  font-size: clamp(64px, 12vw, 136px);
+  font-weight: 800;
+  line-height: .86;
+  letter-spacing: -.035em;
+  transform: rotate(-2deg);
+  transform-origin: left bottom;
+  margin: 6px 0 4px 2px;
+}
+.recitatif {
+  background: var(--soleil);
+  border: 2px solid var(--encre);
+  padding: 10px 14px;
+  max-width: 330px;
+  font-size: 18px;
+  line-height: 1.35;
+  flex: 0 1 auto;
+}
+
+.case-depot {
+  grid-column: 1 / 5;
+  grid-row: 2 / 4;
+  background: var(--ciel);
+  min-height: 430px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px 48px;
+  overflow: hidden;
+  transition: background-color .2s;
+}
+.case-depot .decor { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.bulle {
+  position: relative;
+  background: var(--papier);
+  border: var(--trait) solid var(--encre);
+  border-radius: 46% 54% 50% 50% / 60% 56% 44% 40%;
+  padding: 50px 74px 54px;
+  max-width: 540px;
+  text-align: center;
+  transition: transform .18s ease-out;
+}
+.bulle::after, .bulle::before {
+  content: "";
+  position: absolute;
+  left: 26%;
+  bottom: -34px;
+  border-style: solid;
+}
+.bulle::before { border-width: 36px 30px 0 0; border-color: var(--encre) transparent transparent; transform: skewX(-18deg); }
+.bulle::after { border-width: 29px 23px 0 0; border-color: var(--papier) transparent transparent; margin: 0 0 9px 5px; transform: skewX(-18deg); }
+.bulle h2 { font-size: clamp(26px, 3vw, 34px); font-weight: 800; margin-bottom: 10px; text-wrap: balance; }
+.bulle .formats { font-size: 16px; text-wrap: balance; }
+.si-tactile.touches li { flex-wrap: nowrap; align-items: flex-start; }
+.si-tactile.touches li::before { content: ""; width: 10px; height: 10px; border: 2px solid var(--encre); border-radius: 50%; background: var(--soleil); flex: 0 0 auto; margin: 7px 4px 0 0; }
+.bulle .petit { margin-top: 14px; }
+body.survol .case-depot { background: var(--soleil); }
+body.survol .bulle { transform: scale(1.05) rotate(-1deg); }
+
+/* étagère « Reprendre la lecture » : les couvertures des BD déjà ouvertes */
+.case-reprendre { grid-column: 1 / -1; }
+.reprendre-tete { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin-bottom: 16px; }
+.reprendre-tete h2 { margin: 0; }
+.etagere {
+  list-style: none;
+  margin: 0 -4px;
+  padding: 4px 4px 14px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 150px;
+  gap: 20px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.livre { scroll-snap-align: start; display: flex; flex-direction: column; align-items: stretch; }
+.livre-ouvrir { display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; color: inherit; text-align: left; }
+.couv {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: var(--trait) solid var(--encre);
+  background: var(--papier);
+  box-shadow: 5px 5px 0 var(--encre);
+  margin-bottom: 6px;
+  transition: transform .12s, box-shadow .12s;
+}
+.couv img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.couv.sans-image { background: var(--soleil); }
+.couv .initiale { position: absolute; inset: 0; display: grid; place-items: center; font-size: 64px; font-weight: 800; }
+@media (hover: hover) { .livre-ouvrir:hover .couv { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--encre); } }
+.livre-ouvrir:active .couv { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--encre); }
+.livre-titre { font-weight: 700; font-size: 15px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.livre-page { font-size: 14px; }
+.avancement { display: block; height: 10px; border: 2px solid var(--encre); border-radius: 6px; background: var(--papier); overflow: hidden; }
+.avancement i { display: block; height: 100%; background: var(--rouge); }
+.livre-note { font-size: 13px; line-height: 1.3; }
+.livre-retirer { align-self: flex-start; min-height: 36px; padding: 4px 0; border: 0; background: none; color: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.livre-confirmer { display: flex; gap: 6px; margin-top: 4px; }
+.livre-confirmer button { min-height: 36px; padding: 4px 10px; border: 2px solid var(--encre); border-radius: 10px; background: var(--papier); font-size: 14px; font-weight: 700; }
+.livre-confirmer button.oui { background: var(--encre); color: var(--papier); }
+.reprendre-pied { margin-top: 6px; }
+.astuce { margin-top: 10px; padding: 8px 12px 2px; border: 2px solid var(--encre); background: var(--soleil); }
+.astuce .lien { margin-top: 0; min-height: 40px; font-size: 15px; }
+.installer { margin-left: auto; align-self: center; }
+@media (max-width: 680px) {
+  .etagere { grid-auto-columns: 112px; gap: 14px; }
+  .couv .initiale { font-size: 48px; }
+  .reprendre-tete { margin-bottom: 12px; }
+  .installer { margin-left: 0; }
+}
+
+.case-drive { grid-column: 5 / 7; background: var(--soleil); }
+.case-icloud { grid-column: 5 / 7; }
+.case-demo { grid-column: 1 / 3; background: var(--rouge); color: var(--papier); display: flex; flex-direction: column; justify-content: space-between; }
+.case-clavier { grid-column: 3 / 7; }
+.touches { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; }
+.touches li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+kbd {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid var(--encre);
+  border-bottom-width: 4px;
+  border-radius: 7px;
+  background: var(--papier);
+}
+.pied { max-width: 1120px; margin: 0 auto; padding: 0 20px 28px; font-size: 14px; }
+@media (max-width: 680px) { .pied { padding: 0 16px 24px; } }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: var(--trait) solid var(--encre);
+  border-radius: 14px;
+  background: var(--papier);
+  padding: 10px 18px 11px;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.2;
+  text-decoration: none;
+}
+.btn-noir { background: var(--encre); color: var(--papier); }
+.btn-blanc { align-self: flex-start; color: var(--encre); }
+@media (hover: hover) {
+  .btn:hover { background: var(--encre); color: var(--papier); }
+  .btn-noir:hover { background: var(--soleil); color: var(--encre); }
+  .btn-blanc:hover { background: var(--soleil); color: var(--encre); }
+}
+.btn:active { transform: translateY(2px); }
+.btn[disabled] { opacity: .5; cursor: default; }
+.lien {
+  display: inline-flex;
+  color: inherit;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* marche à suivre dans le sélecteur de fichiers du téléphone */
+.etapes { list-style: none; counter-reset: etape; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.etapes li { counter-increment: etape; display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; font-size: 16px; line-height: 1.35; }
+.etapes li::before {
+  content: counter(etape);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--encre);
+  color: var(--papier);
+  font-size: 14px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.aide { margin-top: 12px; font-size: 15px; line-height: 1.4; }
+.aide summary { cursor: pointer; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; min-height: 32px; display: flex; align-items: center; }
+.aide p { margin-top: 6px; }
+
+@media (max-width: 980px) {
+  .case-depot { grid-column: 1 / -1; grid-row: auto; min-height: 380px; }
+  .case-drive { grid-column: 1 / 4; }
+  .case-icloud { grid-column: 4 / 7; }
+  .case-demo { grid-column: 1 / 3; }
+  .case-clavier { grid-column: 3 / 7; }
+}
+@media (max-width: 680px) {
+  :root { --gouttiere: 10px; }
+  .planche { padding: 12px 12px 18px; }
+  .case { padding: 16px 16px 18px; }
+  .case h2 { font-size: 23px; }
+  .case-titre { flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 16px 16px; }
+  .logo { font-size: clamp(56px, 19vw, 80px); }
+  .recitatif { font-size: 16px; max-width: none; }
+  .case-depot, .case-drive, .case-icloud, .case-demo, .case-clavier { grid-column: 1 / -1; }
+  .case-depot { min-height: 0; padding: 22px 12px 42px; }
+  .case-depot .decor circle { display: none; }
+  .bulle { padding: 24px 18px 26px; border-radius: 34px; }
+  .bulle h2 { font-size: 27px; }
+  /* sur téléphone, les boutons d'ouverture prennent toute la largeur : faciles à toucher au pouce */
+  .bulle .btn, .case-drive .btn, .case-icloud .btn { width: 100%; justify-content: center; min-height: 52px; font-size: 18px; }
+  .case-demo { flex-direction: row; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .case-demo h2 { margin: 0; flex: 1 1 160px; }
+  .case-demo .btn { margin-top: 0; min-height: 48px; }
+  .touches { grid-template-columns: 1fr; }
+  .pied { font-size: 13px; }
+}
+
+/* ---------------------------------------------------------- fenêtres */
+.voile {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, .55);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 16px;
+}
+.fenetre {
+  background: var(--papier);
+  border: var(--trait) solid var(--encre);
+  width: min(560px, 100%);
+  max-height: min(86vh, 760px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.fenetre-tete { display: flex; align-items: center; gap: 12px; padding: 16px 18px 12px; border-bottom: 2px solid var(--encre); }
+.fenetre-tete h2 { font-size: 24px; font-weight: 700; flex: 1; }
+.fenetre-corps { padding: 16px 18px 20px; overflow: auto; }
+.fenetre-corps p + p { margin-top: 10px; }
+.fenetre-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.fenetre-etroite { width: min(360px, 100%); }
+.fermer { border: 2px solid var(--encre); background: var(--papier); border-radius: 10px; width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; font-size: 18px; }
+@media (hover: hover) { .fermer:hover { background: var(--encre); color: var(--papier); } }
+.champ { display: flex; gap: 8px; }
+/* width: 0 : sans cela, la largeur naturelle du champ élargit la fenêtre au-delà de l'écran du téléphone */
+.champ input { flex: 1 1 auto; width: 0; min-width: 0; border: 2px solid var(--encre); border-radius: 10px; padding: 9px 12px; background: var(--papier); }
+.barre-progres { height: 14px; border: 2px solid var(--encre); margin-top: 14px; background: var(--papier); overflow: hidden; }
+.barre-progres i { display: block; height: 100%; width: 40%; background: var(--soleil); border-right: 2px solid var(--encre); animation: va-et-vient 1.1s ease-in-out infinite alternate; }
+.barre-progres.determinee i { animation: none; transition: width .2s; }
+@keyframes va-et-vient { from { transform: translateX(-30%); } to { transform: translateX(180%); } }
+.depot-voile { position: fixed; inset: 0; z-index: 60; pointer-events: none; display: grid; place-items: center; background: rgba(140, 203, 235, .82); }
+.depot-voile p { background: var(--papier); border: var(--trait) solid var(--encre); padding: 22px 30px; font-size: 28px; font-weight: 800; border-radius: 40% 60% 50% 50% / 60% 50% 50% 40%; }
+body.lecture .depot-voile { background: rgba(0, 0, 0, .7); }
+
+/* téléphone : les fenêtres deviennent des volets qui montent du bas, à portée de pouce */
+@media (max-width: 680px) {
+  .voile { align-items: end; justify-items: stretch; padding: 0; }
+  .voile.voile-saisie { align-items: start; padding: 10px 10px 0; }
+  .voile:not(.voile-saisie) .fenetre {
+    width: 100%;
+    max-height: 92vh;
+    max-height: 92dvh;
+    border-width: var(--trait) 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .fenetre-tete { padding: 12px 14px 10px; }
+  .fenetre-tete h2 { font-size: 22px; }
+  .fenetre-corps { padding: 14px 14px 18px; -webkit-overflow-scrolling: touch; }
+  .fenetre-actions .btn, .fenetre-actions .lien-btn { flex: 1 1 100%; justify-content: center; min-height: 50px; }
+    }
+
+/* ---------------------------------------------------------- lecteur */
+#reader { position: relative; min-height: 100vh; outline: none; touch-action: pan-x pan-y; }
+.pages { --gap: 8px; padding-bottom: 0; }
+.page {
+  position: relative;
+  margin: 0 auto var(--gap);
+  background: #1d1d1d;
+  overflow: hidden;
+  contain: strict;
+}
+.page.attente::after {
+  content: attr(data-n);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  font-weight: 700;
+  color: #5c5c5c;
+}
+.page.illisible::after { content: "Page " attr(data-n) " illisible"; font-size: 18px; color: #c9c9c9; }
+.page img, .page canvas { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+body.fond-blanc { --fond-lecture: #fff; }
+body.fond-gris { --fond-lecture: #4a4a4a; }
+body.fond-blanc .page { background: #ededed; }
+body.fond-blanc .page.attente::after { color: #9a9a9a; }
+
+.fin { text-align: center; color: #fff; padding: 9vh 20px 16vh; }
+.fin-mot { font-size: clamp(64px, 12vw, 120px); font-weight: 800; transform: rotate(-3deg); line-height: 1; }
+.fin-titre { margin-top: 10px; color: #cfcfcf; }
+.fin .fenetre-actions { justify-content: center; }
+.fin .btn { color: var(--encre); background: var(--papier); }
+@media (hover: hover) { .fin .btn:hover { background: var(--soleil); } }
+body.fond-blanc .fin { color: #000; }
+body.fond-blanc .fin-titre { color: #333; }
+
+.barre {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  background: rgba(0, 0, 0, .82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: transform .22s ease, opacity .22s ease;
+}
+.barre-haut { top: 0; height: calc(56px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) calc(8px + env(safe-area-inset-right)) 0 calc(8px + env(safe-area-inset-left)); border-bottom: 1px solid rgba(255, 255, 255, .12); }
+.barre-bas { bottom: 0; height: calc(58px + env(safe-area-inset-bottom)); padding: 0 calc(12px + env(safe-area-inset-right)) env(safe-area-inset-bottom) calc(16px + env(safe-area-inset-left)); gap: 14px; border-top: 1px solid rgba(255, 255, 255, .12); }
+#reader.sans-ui .barre-haut { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+#reader.sans-ui .barre-bas { transform: translateY(100%); opacity: 0; pointer-events: none; }
+.ico {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #fff;
+}
+@media (hover: hover) { .ico:hover, .zoom-val:hover { background: rgba(255, 255, 255, .14); } }
+.ico:active, .zoom-val:active { background: rgba(255, 255, 255, .2); }
+.ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.titre-bd { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; padding: 0 6px; }
+.etat { font-size: 14px; color: #d6d6d6; white-space: nowrap; padding: 0 6px; }
+.zoom-val { border: 0; background: transparent; color: #fff; border-radius: 10px; height: 44px; min-width: 66px; padding: 0 6px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.separateur { width: 1px; height: 26px; background: rgba(255, 255, 255, .2); margin: 0 4px; }
+#curseur { flex: 1; min-width: 0; accent-color: var(--soleil); height: 32px; }
+/* sur écran tactile, un curseur de page plus large à attraper */
+body.tactile #curseur { -webkit-appearance: none; appearance: none; height: 44px; background: transparent; margin: 0; }
+body.tactile #curseur::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .35); }
+body.tactile #curseur::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; margin-top: -12px; border-radius: 50%; background: var(--soleil); border: 3px solid #000; box-shadow: 0 0 0 2px var(--soleil); }
+body.tactile #curseur::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .35); }
+body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: var(--soleil); border: 3px solid #000; }
+.compteur {
+  flex: 0 0 auto;
+  background: var(--soleil);
+  color: #000;
+  border: 2px solid #000;
+  box-shadow: 0 0 0 2px var(--soleil);
+  padding: 3px 12px 4px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 84px;
+}
+.bulle-page {
+  position: fixed;
+  right: calc(14px + env(safe-area-inset-right));
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 15;
+  background: var(--soleil);
+  color: #000;
+  border: 2px solid #000;
+  padding: 3px 12px 4px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+.bulle-page.efface { opacity: 0; }
+.menu {
+  position: fixed;
+  z-index: 30;
+  top: 62px;
+  right: 10px;
+  width: 270px;
+  background: #fff;
+  color: #000;
+  border: var(--trait) solid #000;
+  padding: 8px;
+}
+.menu h3 { font-size: 14px; font-weight: 700; margin: 8px 8px 6px; }
+.menu button.choix { display: flex; width: 100%; justify-content: space-between; text-align: left; border: 0; background: none; border-radius: 8px; padding: 9px 10px; }
+.menu button.choix:active { background: var(--soleil); }
+@media (hover: hover) { .menu button.choix:hover { background: var(--soleil); } }
+.menu button.choix[aria-checked="true"]::after { content: "✓"; font-weight: 800; }
+.menu .rangee { display: flex; gap: 6px; padding: 0 4px 6px; }
+.menu .rangee button { flex: 1; border: 2px solid #000; border-radius: 10px; background: #fff; padding: 7px 4px; font-size: 15px; }
+.menu .rangee button[aria-pressed="true"] { background: #000; color: #fff; }
+.toast {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  background: var(--soleil);
+  color: #000;
+  border: 2px solid #000;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 600;
+}
+.toast button { border: 2px solid #000; border-radius: 10px; background: #fff; padding: 4px 10px; min-height: 40px; font-weight: 700; white-space: nowrap; }
+@media (hover: hover) { .toast button:hover { background: #000; color: #fff; } }
+.chargement { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; background: rgba(0, 0, 0, .5); padding: 16px; }
+.chargement .fenetre { padding: 20px 22px 22px; width: min(420px, 100%); }
+.chargement p { font-weight: 600; overflow-wrap: anywhere; }
+
+@media (max-width: 700px) {
+  .barre-haut { height: calc(52px + env(safe-area-inset-top)); padding-left: calc(2px + env(safe-area-inset-left)); padding-right: calc(2px + env(safe-area-inset-right)); }
+  .barre-bas { height: calc(60px + env(safe-area-inset-bottom)); padding-left: calc(14px + env(safe-area-inset-left)); gap: 12px; }
+  .ico { width: 44px; height: 44px; }
+  .masque-mobile { display: none; }
+  .zoom-val { min-width: 58px; }
+  .etat { font-size: 13px; padding: 0 2px; }
+  .toast { bottom: calc(70px + env(safe-area-inset-bottom)); left: 10px; right: 10px; transform: none; max-width: none; justify-content: space-between; }
+  .fin .fenetre-actions { flex-direction: column; align-items: stretch; max-width: 340px; margin-left: auto; margin-right: auto; }
+  .fin .btn { justify-content: center; min-height: 50px; }
+  /* les menus deviennent des volets en bas de l'écran */
+  .menu {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    border-width: var(--trait) 0 0;
+    padding: 8px calc(12px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  }
+  .menu h3 { font-size: 15px; margin: 10px 6px 6px; }
+  .menu button.choix { padding: 13px 10px; font-size: 18px; }
+  .menu .rangee button { padding: 12px 4px; font-size: 16px; }
+}
+/* sur écran tactile, on zoome en pinçant : les boutons + et − laissent la place au titre */
+@media (max-width: 700px) and (pointer: coarse) { .zoom-pas { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<main id="home">
+  <div class="planche">
+    <header class="case case-titre">
+      <h1 class="logo">Planches</h1>
+      <p class="recitatif">Lisez vos BD, mangas et PDF d'un seul défilement, sans tourner les pages.</p>
+      <button class="btn btn-noir installer" id="btn-installer" type="button" hidden>Installer l'application</button>
+    </header>
+
+    <section class="case case-reprendre" id="reprendre" aria-labelledby="reprendre-titre" hidden>
+      <div class="reprendre-tete">
+        <h2 id="reprendre-titre">Reprendre la lecture</h2>
+        <p class="petit" id="reprendre-aide"><span class="si-tactile">Touchez</span><span class="si-clavier">Cliquez sur</span> une BD pour la rouvrir à la page où vous l'aviez laissée.</p>
+      </div>
+      <ul class="etagere" id="etagere"></ul>
+      <p class="petit reprendre-pied" id="reprendre-place">Gardées sur cet appareil, rien n'est envoyé sur internet.</p>
+      <div class="astuce pour-ios" id="astuce-ios" hidden>
+        <p class="petit">Astuce&nbsp;: touchez Partager, puis «&nbsp;Sur l'écran d'accueil&nbsp;». Planches s'ouvrira en plein écran, comme une app.</p>
+        <button class="lien" type="button" id="astuce-ok">Compris</button>
+      </div>
+    </section>
+
+    <section class="case case-depot" aria-labelledby="depot-titre">
+      <svg class="decor" viewBox="0 0 800 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <circle cx="690" cy="86" r="46" fill="#ffcf3f" stroke="#000" stroke-width="3"/>
+        <path d="M60 120c0-22 30-34 48-20 8-26 56-28 66-2 20-8 42 6 38 24 18 2 22 30 0 32H74c-20 0-26-26-14-34z" fill="#fff" stroke="#000" stroke-width="3"/>
+        <path d="M560 300c0-18 24-28 40-16 7-22 46-24 54-2 17-7 35 5 32 20 15 2 18 25 0 27H572c-17 0-22-21-12-29z" fill="#fff" stroke="#000" stroke-width="3"/>
+        <path d="M-10 470V400c90-34 190-40 300-10 120 32 230 26 330-8 70-24 140-24 200 0v88z" fill="#7fbf6a" stroke="#000" stroke-width="3"/>
+      </svg>
+      <div class="bulle">
+        <h2 id="depot-titre"><span class="si-clavier">Déposez une BD ici</span><span class="si-tactile">Ouvrez une BD</span></h2>
+        <p class="formats si-clavier">CBZ, CBR ou PDF&nbsp;: glissez le fichier sur la page, ou&nbsp;bien</p>
+        <p class="formats si-tactile">CBZ, CBR ou PDF, rangée sur votre téléphone ou votre tablette.</p>
+        <button class="btn btn-noir" id="btn-ouvrir" type="button" data-choisir>Choisir un fichier</button>
+        <p class="petit">Le fichier reste sur votre appareil et n'est envoyé nulle part.</p>
+      </div>
+    </section>
+
+    <section class="case case-drive" aria-labelledby="drive-titre">
+      <h2 id="drive-titre">Google Drive</h2>
+      <div class="pour-ordi">
+        <p>Avec l'app Google Drive pour ordinateur, connectée à votre compte Gmail, votre Drive apparaît dans le sélecteur de fichiers comme un disque.</p>
+        <button class="btn" id="btn-drive" type="button" data-choisir>Ouvrir depuis Google Drive</button>
+        <p class="petit">Sans l'app&nbsp;: téléchargez la BD depuis <a href="https://drive.google.com/" target="_blank" rel="noopener">drive.google.com</a>, puis glissez-la sur cette page.</p>
+      </div>
+      <div class="pour-mobile">
+        <p class="pour-ios">Avec l'app Google Drive, votre Drive s'ouvre dans le sélecteur de fichiers de <span data-appareil>l'iPhone</span>, même pour les très grosses BD.</p>
+        <p class="pour-android">Votre Drive s'ouvre dans le sélecteur de fichiers du téléphone, même pour les très grosses BD.</p>
+        <button class="btn btn-noir" id="btn-drive-app" type="button" data-choisir>Ouvrir depuis Google Drive</button>
+        <ol class="etapes pour-ios">
+          <li>Touchez «&nbsp;Choisir le fichier&nbsp;».</li>
+          <li data-lieu="Drive">En bas, touchez «&nbsp;Parcourir&nbsp;», puis «&nbsp;Drive&nbsp;».</li>
+          <li>Touchez la BD&nbsp;: elle s'ouvre aussitôt.</li>
+        </ol>
+        <details class="aide pour-ios">
+          <summary>«&nbsp;Drive&nbsp;» n'apparaît pas&nbsp;?</summary>
+          <p>Installez l'app Google Drive depuis l'App Store et connectez-vous avec votre compte Gmail. Ensuite, dans «&nbsp;Parcourir&nbsp;», touchez «&nbsp;•••&nbsp;» en haut, puis «&nbsp;Modifier&nbsp;», et activez Drive.</p>
+        </details>
+        <ol class="etapes pour-android">
+          <li>Si le téléphone le demande, choisissez «&nbsp;Fichiers&nbsp;».</li>
+          <li>Ouvrez le menu ☰, puis touchez «&nbsp;Drive&nbsp;».</li>
+          <li>Touchez la BD&nbsp;: elle s'ouvre aussitôt.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="case case-icloud" aria-labelledby="icloud-titre">
+      <h2 id="icloud-titre">iCloud Drive</h2>
+      <div class="pour-ios">
+        <p>Les BD rangées dans iCloud Drive sont dans le sélecteur de fichiers de <span data-appareil>l'iPhone</span>.</p>
+        <button class="btn" id="btn-icloud-ios" type="button" data-choisir>Ouvrir depuis iCloud Drive</button>
+        <ol class="etapes">
+          <li>Touchez «&nbsp;Choisir le fichier&nbsp;».</li>
+          <li data-lieu="iCloud Drive">Touchez «&nbsp;Parcourir&nbsp;», puis «&nbsp;iCloud Drive&nbsp;».</li>
+        </ol>
+      </div>
+      <div class="pour-android">
+        <p>iCloud Drive n'existe pas sur Android. Téléchargez la BD depuis icloud.com, puis ouvrez-la ici avec «&nbsp;Choisir un fichier&nbsp;», dans «&nbsp;Téléchargements&nbsp;».</p>
+        <a class="btn" href="https://www.icloud.com/iclouddrive/" target="_blank" rel="noopener">Aller sur icloud.com</a>
+      </div>
+      <div class="pour-ordi">
+        <p>Sur Mac, iCloud Drive apparaît dans le sélecteur de fichiers. Sur Windows, il y apparaît une fois l'app iCloud installée.</p>
+        <button class="btn" id="btn-icloud" type="button" data-choisir>Ouvrir depuis iCloud</button>
+      </div>
+    </section>
+
+    <section class="case case-demo" aria-labelledby="demo-titre">
+      <h2 id="demo-titre">Pas de BD sous la main&nbsp;?</h2>
+      <button class="btn btn-blanc" id="btn-demo" type="button">Lire la BD d'essai</button>
+    </section>
+
+    <section class="case case-clavier" aria-labelledby="clavier-titre">
+      <h2 id="clavier-titre"><span class="si-clavier">Au clavier</span><span class="si-tactile">Du bout des doigts</span></h2>
+      <ul class="touches si-clavier">
+        <li><kbd>←</kbd><kbd>→</kbd> page précédente ou suivante</li>
+        <li><kbd>+</kbd><kbd>−</kbd> zoomer ou dézoomer</li>
+        <li><kbd>0</kbd> retour à l'ajustement</li>
+        <li><kbd>F</kbd> plein écran</li>
+      </ul>
+      <ul class="touches si-tactile">
+        <li>Glissez vers le haut pour lire la suite.</li>
+        <li>Pincez la page pour zoomer.</li>
+        <li>Touchez deux fois pour agrandir un détail.</li>
+        <li>Touchez une fois pour afficher les commandes.</li>
+      </ul>
+    </section>
+  </div>
+  <p class="pied">Formats lus&nbsp;: CBZ, CBR (RAR 3, 4 et 5), CBT, PDF, ainsi que des images seules (JPEG, PNG, WebP, GIF, AVIF).</p>
+</main>
+
+<div id="reader" hidden tabindex="-1">
+  <div id="pages" class="pages"></div>
+
+  <header class="barre barre-haut" id="barre-haut">
+    <button class="ico" id="btn-retour" type="button" aria-label="Fermer la BD" title="Fermer la BD">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="titre-bd" id="titre-bd"></div>
+    <div class="etat" id="etat" aria-live="polite"></div>
+    <button class="ico zoom-pas" id="btn-moins" type="button" aria-label="Dézoomer" title="Dézoomer (−)">
+      <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+    </button>
+    <button class="zoom-val" id="btn-zoom" type="button" aria-haspopup="true" aria-expanded="false" title="Ajustement et zoom">100 %</button>
+    <button class="ico zoom-pas" id="btn-plus" type="button" aria-label="Zoomer" title="Zoomer (+)">
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg>
+    </button>
+    <span class="separateur masque-mobile"></span>
+    <button class="ico" id="btn-reglages" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Réglages de lecture" title="Réglages de lecture">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>
+    </button>
+    <button class="ico" id="btn-plein" type="button" aria-label="Plein écran" title="Plein écran (F)">
+      <svg viewBox="0 0 24 24" class="ico-entrer"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      <svg viewBox="0 0 24 24" class="ico-sortir" hidden><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+    </button>
+  </header>
+
+  <footer class="barre barre-bas" id="barre-bas">
+    <input type="range" id="curseur" min="1" max="1" value="1" step="1" aria-label="Aller à la page">
+    <button class="compteur" id="compteur" type="button" title="Aller à une page">1 / 1</button>
+  </footer>
+
+  <div class="menu" id="menu-zoom" role="menu" hidden>
+    <h3>Ajustement</h3>
+    <button class="choix" role="menuitemradio" data-fit="auto" type="button">Automatique</button>
+    <button class="choix" role="menuitemradio" data-fit="width" type="button">Largeur de l'écran</button>
+    <button class="choix" role="menuitemradio" data-fit="height" type="button">Hauteur de l'écran</button>
+    <h3>Zoom</h3>
+    <div class="rangee">
+      <button type="button" data-zoom="0.5">50 %</button>
+      <button type="button" data-zoom="1">100 %</button>
+      <button type="button" data-zoom="1.5">150 %</button>
+      <button type="button" data-zoom="2">200 %</button>
+    </div>
+  </div>
+
+  <div class="menu" id="menu-reglages" role="menu" hidden>
+    <h3>Espace entre les pages</h3>
+    <div class="rangee" data-reglage="gap">
+      <button type="button" data-val="aucun">Aucun</button>
+      <button type="button" data-val="fin">Fin</button>
+      <button type="button" data-val="large">Large</button>
+    </div>
+    <h3>Fond</h3>
+    <div class="rangee" data-reglage="bg">
+      <button type="button" data-val="noir">Noir</button>
+      <button type="button" data-val="gris">Gris</button>
+      <button type="button" data-val="blanc">Blanc</button>
+    </div>
+  </div>
+
+  <div class="bulle-page efface" id="bulle-page" aria-hidden="true"></div>
+  <div class="toast" id="toast" role="status" hidden><span id="toast-texte"></span><button type="button" id="toast-action"></button></div>
+</div>
+
+<div class="voile" id="message" hidden>
+  <div class="fenetre" role="alertdialog" aria-modal="true" aria-labelledby="message-titre">
+    <div class="fenetre-tete">
+      <h2 id="message-titre"></h2>
+      <button class="fermer" type="button" data-fermer aria-label="Fermer">✕</button>
+    </div>
+    <div class="fenetre-corps">
+      <p id="message-texte"></p>
+      <div class="fenetre-actions">
+        <button class="btn btn-noir" type="button" id="message-ouvrir">Choisir un autre fichier</button>
+        <button class="btn" type="button" data-fermer>Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="voile voile-saisie" id="motdepasse" hidden>
+  <div class="fenetre" role="dialog" aria-modal="true" aria-labelledby="mdp-titre">
+    <div class="fenetre-tete"><h2 id="mdp-titre">PDF protégé</h2></div>
+    <div class="fenetre-corps">
+      <p id="mdp-texte">Ce PDF demande un mot de passe pour s'ouvrir.</p>
+      <form class="champ" id="mdp-form" style="margin-top:14px">
+        <input type="password" id="mdp-champ" aria-label="Mot de passe du PDF" autocomplete="off">
+        <button class="btn btn-noir" type="submit">Ouvrir</button>
+      </form>
+      <div class="fenetre-actions"><button class="btn" type="button" id="mdp-annuler">Annuler</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="voile voile-saisie" id="allera" hidden>
+  <div class="fenetre fenetre-etroite" role="dialog" aria-modal="true" aria-labelledby="allera-titre">
+    <div class="fenetre-tete">
+      <h2 id="allera-titre">Aller à la page</h2>
+      <button class="fermer" type="button" data-fermer aria-label="Fermer">✕</button>
+    </div>
+    <div class="fenetre-corps">
+      <form class="champ" id="allera-form">
+        <input type="number" id="allera-champ" min="1" inputmode="numeric" aria-label="Numéro de page">
+        <button class="btn btn-noir" type="submit">Aller</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="chargement" id="chargement" hidden>
+  <div class="fenetre" role="status">
+    <p id="chargement-texte">Ouverture…</p>
+    <div class="barre-progres" id="chargement-barre"><i></i></div>
+  </div>
+</div>
+
+<div class="depot-voile" id="depot-voile" hidden><p>Lâchez pour ouvrir</p></div>
+<!-- Le champ reste dans la page (invisible, pas display:none) : iOS et Android l'ouvrent ainsi de façon fiable. -->
+<input type="file" id="fichier" class="sr" tabindex="-1" aria-hidden="true">
+
+<script src="formats.js?v=202611071647"></script>
+<script>
+(() => {
+'use strict';
+const F = window.PlanchesFormats;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const UA = navigator.userAgent;
+const isIOS = /iP(hone|ad|od)/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+const isIPad = isIOS && !/iP(hone|od)/.test(UA);
+const isAndroid = /Android/i.test(UA);
+const isMobile = isIOS || isAndroid;
+const coarse = matchMedia('(pointer: coarse)').matches;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const APP_TITLE = 'Planches – lecteur de BD CBZ, CBR et PDF';
+const OS = isIOS ? 'ios' : isAndroid ? 'android' : 'ordi';
+const NB = ' ';
+const guil = (s) => '«' + NB + s + NB + '»';
+document.body.classList.add('os-' + OS);
+if (coarse) document.body.classList.add('tactile');
+if (isIPad) {
+  // sur iPad, le sélecteur montre les emplacements dans une colonne à gauche, pas d'onglets en bas
+  $$('[data-appareil]').forEach((s) => { s.textContent = "l'iPad"; });
+  $$('[data-lieu]').forEach((li) => { li.textContent = 'Dans la colonne de gauche, touchez ' + guil(li.dataset.lieu) + '.'; });
+}
+// iPhone : pas d'API plein écran pour une page (seulement pour les vidéos)
+const canFullscreen = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+if (!canFullscreen) $('#btn-plein').hidden = true;
+
+/** Petit constructeur d'éléments : el('p', { class, text, onclick… }, enfants…) */
+function el(tag, props, ...kids) {
+  const n = document.createElement(tag);
+  for (const k in props || {}) {
+    const v = props[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids) if (c != null && c !== false) n.append(c);
+  return n;
+}
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('planches:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('planches:' + k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } },
+};
+
+class BookError extends Error {}
+const readBytes = async (blob, a, b) => new Uint8Array(await blob.slice(a, b).arrayBuffer());
+const u16 = (b, p) => b[p] | (b[p + 1] << 8);
+const u32 = (b, p) => (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 24)) >>> 0;
+const u64 = (b, p) => u32(b, p) + u32(b, p + 4) * 4294967296;
+
+// unités décimales, comme l'app Fichiers de l'iPhone et les téléphones Android (490 109 495 octets = 490 Mo)
+function fmtBytes(n) {
+  if (!n) return '';
+  const u = ['o', 'Ko', 'Mo', 'Go'];
+  let i = 0;
+  while (n >= 1000 && i < 3) { n /= 1000; i++; }
+  return (i ? n.toLocaleString('fr-FR', { maximumFractionDigits: n < 10 ? 1 : 0 }) : n) + '\u00a0' + u[i];
+}
+function titleFrom(name) {
+  const t = String(name || '').replace(/^.*[\\/]/, '').replace(/\.(cbz|cbr|cbt|cb7|zip|rar|tar|pdf|jpe?g|png|webp|gif|avif)$/i, '').replace(/_+/g, ' ').trim();
+  return t || 'Sans titre';
+}
+function fileKey(file) { return 'f:' + file.name + ':' + file.size; }
+
+// ====================================================================
+//  Livres : une interface commune pour CBZ, CBR, CBT, PDF et images
+// ====================================================================
+class Book {
+  constructor(title) { this.title = title; this.pages = []; this.kind = 'image'; this.handlers = {}; this.closed = false; }
+  on(ev, fn) { (this.handlers[ev] = this.handlers[ev] || []).push(fn); }
+  emit(ev, ...a) { (this.handlers[ev] || []).forEach((fn) => fn(...a)); }
+  setDims(i, w, h) {
+    const p = this.pages[i];
+    if (!p || !(w > 0) || !(h > 0) || (p.w === w && p.h === h)) return;
+    p.w = w; p.h = h;
+    this.emit('dims', i);
+  }
+  prioritize() {}
+  evict() { return false; }
+  /** Libère les données des pages hors de [lo, hi] ; renvoie les numéros des pages libérées. */
+  trim() { return []; }
+  close() { this.closed = true; }
+}
+
+// ------------------------------------------------------------- ZIP / CBZ
+class ZipBook extends Book {
+  static async open(file) {
+    const size = file.size;
+    const tailLen = Math.min(size, 65536 + 22 + 20);
+    const tail = await readBytes(file, size - tailLen, size);
+    let eocd = -1;
+    for (let i = tail.length - 22; i >= 0; i--) {
+      if (tail[i] === 0x50 && tail[i + 1] === 0x4b && tail[i + 2] === 0x05 && tail[i + 3] === 0x06) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new BookError('Ce fichier CBZ/ZIP est incomplet ou endommagé.');
+    let count = u16(tail, eocd + 10), cdSize = u32(tail, eocd + 12), cdOffset = u32(tail, eocd + 16);
+    const eocdAbs = size - tailLen + eocd;
+    let zip64 = false;
+    if (count === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
+      const loc = eocd - 20;
+      if (loc >= 0 && u32(tail, loc) === 0x07064b50) {
+        const at = u64(tail, loc + 8);
+        const rec = await readBytes(file, at, at + 56);
+        if (u32(rec, 0) === 0x06064b50) { count = u64(rec, 32); cdSize = u64(rec, 40); cdOffset = u64(rec, 48); zip64 = true; }
+      }
+    }
+    let shift = 0;
+    if (!zip64 && cdOffset + cdSize !== eocdAbs && eocdAbs - cdSize >= 0) shift = eocdAbs - cdSize - cdOffset;
+    const cd = await readBytes(file, cdOffset + shift, cdOffset + shift + cdSize);
+    const entries = [];
+    let p = 0;
+    for (let k = 0; k < count && p + 46 <= cd.length; k++) {
+      if (u32(cd, p) !== 0x02014b50) break;
+      const flags = u16(cd, p + 8), method = u16(cd, p + 10);
+      let compSize = u32(cd, p + 20), uncompSize = u32(cd, p + 24);
+      const nameLen = u16(cd, p + 28), extraLen = u16(cd, p + 30), commentLen = u16(cd, p + 32);
+      let localOffset = u32(cd, p + 42);
+      const nameBytes = cd.subarray(p + 46, p + 46 + nameLen);
+      const extra = cd.subarray(p + 46 + nameLen, p + 46 + nameLen + extraLen);
+      let name = F.decodeName(nameBytes, (flags & 0x800) !== 0);
+      for (let q = 0; q + 4 <= extra.length;) {
+        const id = u16(extra, q), len = u16(extra, q + 2), d = q + 4;
+        if (id === 0x0001) {
+          let r = d;
+          if (uncompSize === 0xffffffff && r + 8 <= d + len) { uncompSize = u64(extra, r); r += 8; }
+          if (compSize === 0xffffffff && r + 8 <= d + len) { compSize = u64(extra, r); r += 8; }
+          if (localOffset === 0xffffffff && r + 8 <= d + len) { localOffset = u64(extra, r); r += 8; }
+        } else if (id === 0x7075 && len > 5) {
+          try { name = new TextDecoder('utf-8', { fatal: true }).decode(extra.subarray(d + 5, d + len)); } catch (e) { /* nom d'origine */ }
+        }
+        q = d + len;
+      }
+      entries.push({ name: name.replace(/\\/g, '/'), flags, method, compSize, uncompSize, localOffset: localOffset + shift });
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    const imgs = entries.filter((e) => !e.name.endsWith('/') && F.isImageName(e.name));
+    if (!imgs.length) {
+      if (entries.some((e) => /\.pdf$/i.test(e.name))) throw new BookError("Cette archive contient un PDF plutôt que des images : décompressez-la, puis ouvrez le PDF.");
+      throw new BookError("Aucune image trouvée dans l'archive.");
+    }
+    imgs.sort((a, b) => F.naturalCompare(a.name, b.name));
+    const book = new ZipBook(titleFrom(file.name));
+    book.file = file;
+    book.pages = imgs.map((e) => ({ name: e.name, w: 0, h: 0, entry: e, mime: F.mimeFromName(e.name) }));
+    book.scan();
+    return book;
+  }
+  async dataStart(e) {
+    if (e.dataStart == null) {
+      const lh = await readBytes(this.file, e.localOffset, e.localOffset + 30);
+      if (u32(lh, 0) !== 0x04034b50) throw new BookError('Entrée ZIP endommagée.');
+      e.dataStart = e.localOffset + 30 + u16(lh, 26) + u16(lh, 28);
+    }
+    return e.dataStart;
+  }
+  async raw(e) { const s = await this.dataStart(e); return this.file.slice(s, s + e.compSize); }
+  async head(e, n) {
+    const raw = await this.raw(e);
+    if (e.method === 0) return new Uint8Array(await raw.slice(0, n).arrayBuffer());
+    if (e.method === 8 && typeof DecompressionStream === 'function') {
+      const reader = raw.stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader();
+      const chunks = [];
+      let got = 0;
+      try {
+        while (got < n) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          got += value.length;
+        }
+      } finally { reader.cancel().catch(() => {}); }
+      const out = new Uint8Array(Math.min(got, n));
+      let o = 0;
+      for (const c of chunks) { const k = Math.min(c.length, out.length - o); out.set(c.subarray(0, k), o); o += k; if (o >= out.length) break; }
+      return out;
+    }
+    return null;
+  }
+  async scan() {
+    // dimensions des pages à partir des en-têtes d'images (mise en page stable)
+    let next = 0;
+    const worker = async () => {
+      while (!this.closed && next < this.pages.length) {
+        const i = next++;
+        const p = this.pages[i];
+        if (p.w) continue;
+        try {
+          const h = await this.head(p.entry, 1 << 16);
+          const info = h && F.sniffImage(h);
+          if (info) { if (info.mime) p.mime = info.mime; if (info.w && info.h) this.setDims(i, info.w, info.h); }
+        } catch (e) { /* la page sera mesurée au chargement */ }
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+  }
+  load(i) {
+    const p = this.pages[i];
+    if (!p.blob) p.blob = this.extract(p).catch((err) => { p.blob = null; throw err; });
+    return p.blob;
+  }
+  async extract(p) {
+    const e = p.entry;
+    if (e.flags & 1) throw new BookError('Page protégée par un mot de passe.');
+    const raw = await this.raw(e);
+    if (e.method === 0) return new Blob([raw], { type: p.mime });
+    if (e.method === 8) {
+      if (typeof DecompressionStream === 'function') {
+        const buf = await new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+        return new Blob([buf], { type: p.mime });
+      }
+      const pako = await loadPako();
+      return new Blob([pako.inflateRaw(new Uint8Array(await raw.arrayBuffer()))], { type: p.mime });
+    }
+    throw new BookError('Méthode de compression ZIP non prise en charge (' + e.method + ').');
+  }
+  evict(i) { const p = this.pages[i]; if (p && p.entry.method !== 0 && p.blob) { p.blob = null; return true; } return false; }
+}
+
+let pakoPromise = null;
+function loadPako() {
+  if (!pakoPromise) {
+    pakoPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'pako_inflate.min.js';
+      s.onload = () => resolve(window.pako);
+      s.onerror = () => reject(new BookError('Décompression ZIP indisponible dans ce navigateur.'));
+      document.head.appendChild(s);
+    });
+  }
+  return pakoPromise;
+}
+
+// ------------------------------------------------------------- TAR / CBT
+class TarBook extends Book {
+  static async open(file) {
+    const entries = [];
+    let pos = 0, longName = null, paxPath = null, guard = 0;
+    const cstr = (b, a, n) => { let e = a; while (e < a + n && b[e]) e++; return F.decodeName(b.subarray(a, e), false); };
+    while (pos + 512 <= file.size && guard++ < 200000) {
+      const h = await readBytes(file, pos, pos + 512);
+      if (h.every((x) => x === 0)) break;
+      const name = cstr(h, 0, 100);
+      const size = parseInt(cstr(h, 124, 12).trim() || '0', 8) || 0;
+      const type = h[156];
+      let full = name;
+      if (cstr(h, 257, 5) === 'ustar') { const prefix = cstr(h, 345, 155); if (prefix) full = prefix + '/' + name; }
+      const dataPos = pos + 512;
+      if (type === 0x4c) longName = cstr(await readBytes(file, dataPos, dataPos + size), 0, size);
+      else if (type === 0x78) {
+        const txt = new TextDecoder().decode(await readBytes(file, dataPos, dataPos + size));
+        const m = /\d+ path=([^\n]*)\n/.exec(txt);
+        if (m) paxPath = m[1];
+      } else {
+        if (type === 0 || type === 0x30 || type === 0x37) entries.push({ name: (paxPath || longName || full).replace(/\\/g, '/'), offset: dataPos, size });
+        longName = paxPath = null;
+      }
+      pos = dataPos + Math.ceil(size / 512) * 512;
+    }
+    const imgs = entries.filter((e) => F.isImageName(e.name)).sort((a, b) => F.naturalCompare(a.name, b.name));
+    if (!imgs.length) throw new BookError("Aucune image trouvée dans l'archive.");
+    const book = new TarBook(titleFrom(file.name));
+    book.file = file;
+    book.pages = imgs.map((e) => ({ name: e.name, w: 0, h: 0, entry: e, mime: F.mimeFromName(e.name) }));
+    book.scan();
+    return book;
+  }
+  async scan() {
+    for (let i = 0; i < this.pages.length && !this.closed; i++) {
+      const p = this.pages[i];
+      try {
+        const info = F.sniffImage(await readBytes(this.file, p.entry.offset, p.entry.offset + Math.min(p.entry.size, 1 << 16)));
+        if (info) { if (info.mime) p.mime = info.mime; if (info.w && info.h) this.setDims(i, info.w, info.h); }
+      } catch (e) { /* mesure au chargement */ }
+    }
+  }
+  load(i) { const p = this.pages[i]; return Promise.resolve(new Blob([this.file.slice(p.entry.offset, p.entry.offset + p.entry.size)], { type: p.mime })); }
+}
+
+// ------------------------------------------------------------- images seules
+class ImagesBook extends Book {
+  static async fromFiles(files, title) {
+    const list = files.filter((f) => F.isImageName(f.name) || /^image\//.test(f.type)).sort((a, b) => F.naturalCompare(a.name, b.name));
+    if (!list.length) throw new BookError('Aucune image dans la sélection.');
+    const book = new ImagesBook(title || (list.length === 1 ? titleFrom(list[0].name) : 'Images (' + list.length + ')'));
+    book.pages = list.map((f) => ({ name: f.name, w: 0, h: 0, file: f }));
+    book.pages.forEach((p, i) => {
+      readBytes(p.file, 0, Math.min(p.file.size, 1 << 16)).then((b) => { const info = F.sniffImage(b); if (info && info.w) book.setDims(i, info.w, info.h); }).catch(() => {});
+    });
+    return book;
+  }
+  load(i) { return Promise.resolve(this.pages[i].file); }
+}
+
+// ------------------------------------------------------------- RAR / CBR
+let workerSeq = 0;
+class RarBook extends Book {
+  // Le worker ne décompresse que les pages demandées (autour de la lecture, plus quelques-unes
+  // d'avance) : une BD de 500 Mo n'occupe ainsi que quelques dizaines de Mo en mémoire.
+  static open(file) {
+    return new Promise((resolve, reject) => {
+      let worker;
+      try { worker = new Worker('rar-worker.js?v=202611071647'); }
+      catch (e) { RarBook.openInline(file).then(resolve, reject); return; }
+      const book = new RarBook(titleFrom(file.name));
+      const id = ++workerSeq;
+      let listed = false;
+      book.worker = worker;
+      book.id = id;
+      book.byIndex = new Map();
+      book.bytes = 0;
+      book.chain = 0;
+      book.lastNeed = '';
+      worker.onmessage = (ev) => {
+        const m = ev.data;
+        if (!m || m.id !== id) return;
+        if (m.type === 'list') {
+          listed = true;
+          book.solid = m.solid;
+          book.pages = m.entries.map((en) => ({ name: en.name, w: 0, h: 0, entryIndex: en.index, waiters: [] }));
+          m.entries.forEach((en, k) => book.byIndex.set(en.index, k));
+          resolve(book);
+        } else if (m.type === 'page') {
+          const k = book.byIndex.get(m.index);
+          const p = book.pages[k];
+          if (!p) return;
+          if (p.blob) book.bytes -= p.blob.size;
+          p.blob = new Blob([m.buffer], { type: m.mime });
+          book.bytes += p.blob.size;
+          p.evicted = false;
+          book.chain = 0;
+          if (m.w && m.h) book.setDims(k, m.w, m.h);
+          p.waiters.splice(0).forEach(([res]) => res(p.blob));
+          book.emit('progress');
+        } else if (m.type === 'page-error') {
+          const k = book.byIndex.get(m.index);
+          const p = book.pages[k];
+          if (!p) return;
+          p.error = new BookError(m.message);
+          book.chain = 0;
+          p.waiters.splice(0).forEach(([, rej]) => rej(p.error));
+          book.emit('progress');
+        } else if (m.type === 'chain') {
+          book.chain = m.total ? Math.min(99, Math.floor(100 * m.done / m.total)) : 0;
+          book.emit('progress');
+        } else if (m.type === 'error') {
+          worker.terminate();
+          reject(new BookError(m.message));
+        }
+      };
+      worker.onerror = (e) => {
+        e.preventDefault();
+        worker.terminate();
+        if (!listed) RarBook.openInline(file).then(resolve, reject);
+        else book.pages.forEach((p) => { if (!p.blob && !p.error) { p.error = new BookError('Décompression interrompue.'); p.waiters.splice(0).forEach(([, rej]) => rej(p.error)); } });
+      };
+      worker.postMessage({ cmd: 'open', id, file });
+    });
+  }
+  /** Repli sans worker : décompression sur le fil principal, par petites étapes. */
+  static async openInline(file) {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const src = { size: buf.length, read: (p, l) => buf.subarray(p, Math.min(buf.length, p + l)) };
+    let arc;
+    try { arc = F.openRar(src); } catch (e) { throw new BookError(e.message); }
+    const images = arc.entries.filter((e) => !e.isDir && F.isImageName(e.name));
+    if (!images.length) throw new BookError("Aucune image trouvée dans l'archive.");
+    const order = images.slice().sort((a, b) => F.naturalCompare(a.name, b.name));
+    const book = new RarBook(titleFrom(file.name));
+    book.pages = order.map((e) => ({ name: e.name, w: 0, h: 0, entryIndex: e.index, waiters: [] }));
+    const byIndex = new Map(order.map((e, k) => [e.index, k]));
+    (async () => {
+      for (const e of images.slice().sort((a, b) => a.index - b.index)) {
+        if (book.closed) return;
+        const k = byIndex.get(e.index), p = book.pages[k];
+        try {
+          const data = arc.extract(e.index);
+          const info = F.sniffImage(data.subarray(0, 1 << 16)) || {};
+          p.blob = new Blob([data], { type: info.mime || F.mimeFromName(e.name) });
+          if (info.w && info.h) book.setDims(k, info.w, info.h);
+          p.waiters.splice(0).forEach(([res]) => res(p.blob));
+        } catch (err) {
+          p.error = new BookError(err.message);
+          p.waiters.splice(0).forEach(([, rej]) => rej(p.error));
+        }
+        book.emit('progress');
+        await sleep(0);
+      }
+    })();
+    return book;
+  }
+  load(i) {
+    const p = this.pages[i];
+    if (p.blob) return Promise.resolve(p.blob);
+    if (p.error) return Promise.reject(p.error);
+    return new Promise((res, rej) => p.waiters.push([res, rej]));
+  }
+  /** Pages voulues, par ordre de priorité : le worker décompresse celles qui manquent. */
+  prioritize(indices) {
+    if (!this.worker) return;
+    const need = [];
+    for (const i of indices) { const p = this.pages[i]; if (p && !p.blob && !p.error) need.push(p.entryIndex); }
+    const key = need.join(',');
+    if (key === this.lastNeed) return;
+    this.lastNeed = key;
+    this.worker.postMessage({ cmd: 'need', id: this.id, indices: need });
+  }
+  drop(list) {
+    const idx = [];
+    for (const i of list) {
+      const p = this.pages[i];
+      if (!p || !p.blob) continue;
+      this.bytes -= p.blob.size;
+      p.blob = null;
+      p.evicted = true;
+      idx.push(p.entryIndex);
+    }
+    if (idx.length && this.worker) { this.worker.postMessage({ cmd: 'drop', id: this.id, indices: idx }); this.lastNeed = ''; }
+    return idx.length > 0;
+  }
+  evict(i) {
+    // archive solide : relire une page impose de tout redécompresser depuis le début ; on la garde
+    // tant que la mémoire le permet (voir trim)
+    if (!this.worker || this.solid) return false;
+    return this.drop([i]);
+  }
+  trim(lo, hi, cur) {
+    if (!this.worker) return [];
+    const far = [];
+    this.pages.forEach((p, i) => { if (p.blob && (i < lo || i > hi)) far.push(i); });
+    if (!far.length) return [];
+    if (!this.solid) { this.drop(far); return far; }
+    const budget = RarBook.budget;
+    if (this.bytes <= budget) return [];
+    far.sort((a, b) => Math.abs(b - cur) - Math.abs(a - cur));
+    const victims = [];
+    let bytes = this.bytes;
+    for (const i of far) { if (bytes <= budget * 0.8) break; bytes -= this.pages[i].blob.size; victims.push(i); }
+    this.drop(victims);
+    return victims;
+  }
+  close() { super.close(); if (this.worker) this.worker.terminate(); }
+}
+// archives solides : mémoire maximale gardée pour les pages déjà décompressées
+RarBook.budget = isMobile ? 160e6 : 900e6;
+
+// ------------------------------------------------------------- PDF
+let pdfjsPromise = null;
+function loadPdfjs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import(new URL('pdf.min.js', document.baseURI).href).then((m) => {
+      m.GlobalWorkerOptions.workerSrc = new URL('pdf.worker.min.js', document.baseURI).href;
+      return m;
+    }).catch((e) => { pdfjsPromise = null; throw new BookError("Le lecteur PDF n'a pas pu se charger (" + (e && e.message || e) + ').'); });
+  }
+  return pdfjsPromise;
+}
+/** Lecture d'un gros PDF par morceaux, à la demande : pdf.js ne charge que ce que les pages affichées utilisent. */
+let PdfFileRange = null;
+function pdfRangeClass(pdfjs) {
+  if (!PdfFileRange) {
+    PdfFileRange = class extends pdfjs.PDFDataRangeTransport {
+      constructor(file) { super(file.size, null); this.file = file; }
+      requestDataRange(begin, end) {
+        this.file.slice(begin, end).arrayBuffer().then((buf) => this.onDataRange(begin, new Uint8Array(buf)), () => {});
+      }
+    };
+  }
+  return PdfFileRange;
+}
+class PdfBook extends Book {
+  static async open(file) {
+    const pdfjs = await loadPdfjs();
+    // tous les fichiers du site sont au même niveau (dépôt GitHub sans dossiers)
+    const base = new URL('./', document.baseURI).href;
+    const common = {
+      cMapUrl: base + 'cmaps/', cMapPacked: true, standardFontDataUrl: base,
+      wasmUrl: base, iccUrl: base, isEvalSupported: false, enableXfa: false,
+    };
+    const attempt = async (byRange) => {
+      const src = byRange
+        ? Object.assign({ range: new (pdfRangeClass(pdfjs))(file), disableAutoFetch: true, disableStream: true, rangeChunkSize: 1 << 18 }, common)
+        : Object.assign({ data: new Uint8Array(await file.arrayBuffer()) }, common);
+      const task = pdfjs.getDocument(src);
+      task.onPassword = (update, reason) => {
+        askPassword(reason === 2).then((pw) => { if (pw == null) task.destroy(); else update(pw); });
+      };
+      try { return await task.promise; }
+      catch (e) {
+        if (e && e.name === 'PasswordException') throw new BookError('Ouverture annulée : ce PDF est protégé par un mot de passe.');
+        if (task.destroyed) throw new BookError('Ouverture annulée.');
+        try { task.destroy(); } catch (e2) { /* rien */ }
+        throw e;
+      }
+    };
+    const unreadable = (e) => new BookError("Ce PDF est illisible ou endommagé (" + (e && e.message || e) + ').');
+    const byRange = file.size > PdfBook.rangeMin;
+    let doc;
+    try { doc = await attempt(byRange); }
+    catch (e) {
+      if (e instanceof BookError) throw e;
+      if (!byRange || file.size > 300e6) throw unreadable(e);
+      // repli : lecture du fichier entier
+      try { doc = await attempt(false); }
+      catch (e2) { throw e2 instanceof BookError ? e2 : unreadable(e2); }
+    }
+    const book = new PdfBook(titleFrom(file.name));
+    book.kind = 'pdf';
+    book.doc = doc;
+    const first = await doc.getPage(1);
+    const vp = first.getViewport({ scale: 1 });
+    book.pages = Array.from({ length: doc.numPages }, () => ({ w: vp.width, h: vp.height }));
+    book.scan();
+    return book;
+  }
+  async scan() {
+    for (let i = 1; i < this.pages.length && !this.closed; i++) {
+      try {
+        const pg = await this.doc.getPage(i + 1);
+        const vp = pg.getViewport({ scale: 1 });
+        this.setDims(i, vp.width, vp.height);
+      } catch (e) { /* page conservée avec la taille de la première */ }
+      if (i % 25 === 0) await sleep(0);
+    }
+  }
+  close() { super.close(); try { this.doc.destroy(); } catch (e) { /* déjà fermé */ } }
+}
+// au-delà de cette taille, le PDF est lu par morceaux (la mémoire d'un téléphone est comptée)
+PdfBook.rangeMin = isMobile ? 8 * 1048576 : 64 * 1048576;
+
+// ------------------------------------------------------------- ouverture
+async function detectKind(file) {
+  const head = await readBytes(file, 0, Math.min(file.size, 1024));
+  const name = (file.name || '').toLowerCase();
+  if (head[0] === 0x50 && head[1] === 0x4b && (head[2] === 3 || head[2] === 5 || head[2] === 7)) return 'zip';
+  if (F.findRarSignature(head.subarray(0, 32))) return 'rar';
+  for (let i = 0; i + 5 <= head.length; i++) {
+    if (head[i] === 0x25 && head[i + 1] === 0x50 && head[i + 2] === 0x44 && head[i + 3] === 0x46 && head[i + 4] === 0x2d) return 'pdf';
+  }
+  if (head.length >= 262 && String.fromCharCode(head[257], head[258], head[259], head[260], head[261]) === 'ustar') return 'tar';
+  if (head[0] === 0x37 && head[1] === 0x7a && head[2] === 0xbc && head[3] === 0xaf) return '7z';
+  if (F.sniffImage(head)) return 'image';
+  if (/\.(cbt|tar)$/.test(name)) return 'tar';
+  if (/\.(cb7|7z)$/.test(name)) return '7z';
+  return 'unknown';
+}
+
+const Loading = {
+  show(text) { $('#chargement-texte').textContent = text; const b = $('#chargement-barre'); b.classList.remove('determinee'); b.firstElementChild.style.width = ''; $('#chargement').hidden = false; },
+  hide() { $('#chargement').hidden = true; },
+};
+
+async function openFiles(fileList, opts = {}) {
+  const files = Array.from(fileList || []).filter(Boolean);
+  if (!files.length) return;
+  closeModals();
+  if (files.length > 1 && files.every((f) => F.isImageName(f.name) || /^image\//.test(f.type))) {
+    try {
+      const book = await ImagesBook.fromFiles(files);
+      const key = opts.key || 'imgs:' + files.map((f) => f.name + f.size).join('|').slice(0, 200);
+      if (opts.title) book.title = opts.title;
+      Reader.open(book, key, opts.resume);
+      if (!opts.noLibrary) Library.add(key, book, files);
+    } catch (e) { showError(e); }
+    return;
+  }
+  const file = files[0];
+  Loading.show('Ouverture de « ' + file.name + ' »…');
+  try {
+    const kind = await detectKind(file);
+    let book;
+    if (kind === 'zip') book = await ZipBook.open(file);
+    else if (kind === 'rar') book = await RarBook.open(file);
+    else if (kind === 'tar') book = await TarBook.open(file);
+    else if (kind === 'pdf') { Loading.show('Préparation du PDF « ' + file.name + ' »…'); book = await PdfBook.open(file); }
+    else if (kind === 'image') book = await ImagesBook.fromFiles([file]);
+    else if (kind === '7z') throw new BookError("Les archives 7z (CB7) ne sont pas prises en charge. Convertissez le fichier en CBZ, puis ouvrez-le ici.");
+    else throw new BookError('« ' + file.name + " » n'est pas une BD reconnue. Formats acceptés : CBZ, CBR, CBT, PDF et images.");
+    if (!book.pages.length) throw new BookError('Aucune page trouvée dans ce fichier.');
+    if (opts.title) book.title = opts.title;
+    Loading.hide();
+    const key = opts.key || fileKey(file);
+    Reader.open(book, key, opts.resume);
+    if (!opts.noLibrary) Library.add(key, book, [file]);
+  } catch (err) {
+    Loading.hide();
+    showError(err);
+  }
+}
+
+function showError(err) {
+  console.warn(err);
+  const known = err instanceof BookError || (err && err.name === 'RarError');
+  showMessage("Impossible d'ouvrir ce fichier", known ? err.message : 'Erreur inattendue : ' + (err && err.message || err));
+}
+function showMessage(title, text, action) {
+  $('#message-titre').textContent = title;
+  $('#message-texte').textContent = text;
+  $('#message-ouvrir').textContent = action || 'Choisir un autre fichier';
+  openModal('#message');
+}
+
+// ------------------------------------------------------------- fenêtres
+let lastFocus = null;
+function openModal(sel, opts = {}) {
+  lastFocus = document.activeElement;
+  const m = $(sel);
+  m.hidden = false;
+  // sur téléphone, ne pas faire surgir le clavier sans raison
+  const f = opts.focus === false ? m.querySelector('.fermer') : m.querySelector('input, button.btn-noir, button');
+  if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
+}
+function closeModal(m) { if (m && !m.hidden) { m.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); } }
+function closeModals() { $$('.voile').forEach((m) => { m.hidden = true; }); }
+function modalOpen() { return $$('.voile').some((m) => !m.hidden) || !$('#chargement').hidden; }
+$$('.voile').forEach((m) => {
+  m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-fermer]')) closeModal(m); });
+});
+$('#message-ouvrir').addEventListener('click', () => { closeModal($('#message')); pickFile(); });
+
+function askPassword(again) {
+  return new Promise((resolve) => {
+    $('#mdp-texte').textContent = again ? 'Mot de passe incorrect. Réessayez.' : 'Ce PDF demande un mot de passe pour s\'ouvrir.';
+    const champ = $('#mdp-champ');
+    champ.value = '';
+    Loading.hide();
+    openModal('#motdepasse');
+    const form = $('#mdp-form'), cancel = $('#mdp-annuler');
+    const done = (v) => { form.onsubmit = null; cancel.onclick = null; $('#motdepasse').hidden = true; if (v != null) Loading.show('Ouverture du PDF…'); resolve(v); };
+    form.onsubmit = (e) => { e.preventDefault(); done(champ.value); };
+    cancel.onclick = () => done(null);
+  });
+}
+
+// ====================================================================
+//  Lecteur vertical
+// ====================================================================
+const Reader = {
+  root: $('#reader'),
+  pagesEl: $('#pages'),
+  book: null,
+  token: 0,
+  st: [], offs: [], hs: [], ws: [],
+  loadedSet: new Set(),
+  renderQueue: [], rendering: false,
+  fit: store.get('fit', 'auto'),
+  zoom: store.get('zoom', 1),
+  gap: store.get('gap', 'fin'),
+  bg: store.get('bg', 'noir'),
+  cur: -1, vw: 0, vh: 0, contentW: 0, padTop: 0, gapPx: 0,
+  anim: null, animTarget: null,
+  immersive: false,
+
+  open(book, key, resume) {
+    this.close(true);
+    this.book = book;
+    this.key = key;
+    this.coverTaken = false;
+    this.token++;
+    this.cur = -1;
+    this.applyLook();
+    document.title = book.title + ' – Planches';
+    $('#titre-bd').textContent = book.title;
+    $('#etat').textContent = '';
+    $('#home').hidden = true;
+    this.root.hidden = false;
+    document.body.classList.add('lecture');
+    const frag = document.createDocumentFragment();
+    this.st = book.pages.map((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'page attente';
+      el.dataset.n = i + 1;
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', 'Page ' + (i + 1));
+      frag.appendChild(el);
+      return { el, img: null, canvas: null, url: null, loading: false, loaded: false, wanted: false, error: null, renderW: 0, task: null };
+    });
+    frag.appendChild(this.finCard(book));
+    this.pagesEl.replaceChildren(frag);
+    const curseur = $('#curseur');
+    curseur.max = book.pages.length;
+    curseur.value = 1;
+    book.on('dims', () => this.dimsChanged());
+    book.on('progress', () => { if (book === this.book) this.refreshEtat(); });
+    document.documentElement.classList.add('lecture');
+    setThemeColor(true);
+    keepAwake(true);
+    window.scrollTo(0, 0);
+    this.layout();
+    const saved = store.get('pos:' + key, null) || resume || null;
+    if (saved && saved.i > 0 && saved.i < book.pages.length) {
+      this.scrollToPage(saved.i, saved.f || 0);
+      this.toast('Reprise à la page ' + (saved.i + 1) + '.', 'Revenir au début', () => this.goTo(0));
+    }
+    this.updateZoomLabel();
+    this.update();
+    this.showChrome(true);
+    this.root.focus({ preventScroll: true });
+  },
+
+  finCard(book) {
+    const d = document.createElement('div');
+    d.className = 'fin';
+    d.innerHTML = '<p class="fin-mot">Fin</p><p class="fin-titre"></p><div class="fenetre-actions"><button class="btn" type="button" data-act="debut">Revenir au début</button><button class="btn btn-blanc" type="button" data-act="autre">Ouvrir une autre BD</button></div>';
+    d.querySelector('.fin-titre').textContent = book.title;
+    d.querySelector('[data-act="debut"]').onclick = () => this.goTo(0);
+    d.querySelector('[data-act="autre"]').onclick = () => { this.close(); pickFile(); };
+    this.finEl = d;
+    return d;
+  },
+
+  close(silent) {
+    if (this.book) {
+      this.savePos();
+      this.token++;
+      this.stopAnim();
+      for (const s of this.st) {
+        if (s.url) URL.revokeObjectURL(s.url);
+        if (s.task) { try { s.task.cancel(); } catch (e) { /* déjà fini */ } }
+        if (s.canvas) s.canvas.width = 0;
+      }
+      this.book.close();
+      this.book = null;
+      this.st = [];
+      this.loadedSet.clear();
+      this.renderQueue = [];
+      this.pagesEl.replaceChildren();
+      this.hideMenus();
+      $('#toast').hidden = true;
+    }
+    if (!silent) {
+      if (fsElement()) exitFs();
+      keepAwake(false);
+      this.root.hidden = true;
+      this.root.classList.remove('sans-ui');
+      $('#home').hidden = false;
+      document.documentElement.classList.remove('lecture');
+      document.body.classList.remove('lecture', 'fond-blanc', 'fond-gris');
+      document.title = APP_TITLE;
+      setThemeColor(false);
+      window.scrollTo(0, 0);
+      renderLibrary();
+    }
+  },
+
+  applyLook() {
+    document.body.classList.toggle('fond-blanc', this.bg === 'blanc');
+    document.body.classList.toggle('fond-gris', this.bg === 'gris');
+    $$('#menu-reglages [data-reglage]').forEach((row) => {
+      const v = this[row.dataset.reglage];
+      row.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.val === v)));
+    });
+    $$('#menu-zoom [data-fit]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.fit === this.fit)));
+  },
+
+  // ---------------------------------------------------------- mise en page
+  defaultRatio() {
+    const pages = this.book.pages;
+    for (let i = 0; i < pages.length; i++) if (pages[i].w > 0 && pages[i].h > 0) return pages[i].h / pages[i].w;
+    return 1.414;
+  },
+  layout() {
+    const book = this.book;
+    if (!book) return;
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    const vh = window.innerHeight;
+    const small = vw <= 700;
+    // téléphone, y compris à l'horizontale : la page occupe toute la largeur
+    const phone = small || (coarse && Math.min(vw, vh) <= 520);
+    this.phone = phone;
+    const n = book.pages.length;
+    const gap = this.gap === 'aucun' ? 0 : this.gap === 'large' ? Math.round(clamp(vw * 0.04, 20, 48)) : Math.round(clamp(vw * 0.012, 6, 14));
+    const ratio0 = this.defaultRatio();
+    const base = phone ? vw : Math.min(vw - 48, Math.max(640, Math.round(vh * 0.8)));
+    const padTop = small ? 52 : 64;
+    let y = padTop, maxW = 0;
+    for (let i = 0; i < n; i++) {
+      const p = book.pages[i];
+      const r = p.w > 0 && p.h > 0 ? p.h / p.w : ratio0;
+      let w;
+      if (this.fit === 'height') w = (vh - (small ? 0 : 16)) / r * this.zoom;
+      else if (this.fit === 'width') w = vw * this.zoom;
+      else w = base * this.zoom;
+      w = Math.round(clamp(w, 40, 16000));
+      const h = Math.max(1, Math.round(w * r));
+      this.ws[i] = w; this.hs[i] = h; this.offs[i] = y;
+      y += h + gap;
+      if (w > maxW) maxW = w;
+    }
+    this.ws.length = this.hs.length = this.offs.length = n;
+    this.endY = y;
+    this.vw = vw; this.vh = vh; this.gapPx = gap; this.padTop = padTop;
+    this.contentW = Math.max(vw, maxW);
+    const ps = this.pagesEl.style;
+    ps.width = this.contentW + 'px';
+    ps.paddingTop = padTop + 'px';
+    ps.setProperty('--gap', gap + 'px');
+    for (let i = 0; i < n; i++) {
+      const s = this.st[i];
+      if (s.w !== this.ws[i]) { s.el.style.width = this.ws[i] + 'px'; s.w = this.ws[i]; }
+      if (s.h !== this.hs[i]) { s.el.style.height = this.hs[i] + 'px'; s.h = this.hs[i]; }
+    }
+  },
+  pageAt(y) {
+    const o = this.offs;
+    let lo = 0, hi = o.length - 1;
+    if (hi < 0) return 0;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (o[mid] <= y) lo = mid; else hi = mid - 1;
+    }
+    return lo;
+  },
+  leftOf(i) { return (this.contentW - this.ws[i]) / 2; },
+  /** Garde la page visible en haut de l'écran pendant un changement de mise en page. */
+  anchored(fn) {
+    if (!this.book || !this.offs.length) { fn(); return; }
+    const y = window.scrollY;
+    const a = this.pageAt(y);
+    const frac = this.hs[a] ? (y - this.offs[a]) / this.hs[a] : 0;
+    const cx = window.scrollX + this.vw / 2;
+    const fx = this.ws[a] ? (cx - this.leftOf(a)) / this.ws[a] : 0.5;
+    fn();
+    const ny = clamp(this.offs[a] + frac * this.hs[a], 0, this.maxY());
+    const nx = clamp(this.leftOf(a) + fx * this.ws[a] - this.vw / 2, 0, Math.max(0, this.contentW - this.vw));
+    // ne pas toucher au défilement s'il ne change pas : sur iPhone, cela couperait l'élan du doigt
+    if (Math.abs(ny - window.scrollY) > 0.5 || Math.abs(nx - window.scrollX) > 0.5) window.scrollTo(nx, ny);
+    if (this.anim && this.animTarget != null) this.retarget();
+  },
+  dimsChanged() {
+    if (this.dimsPending) return;
+    this.dimsPending = true;
+    requestAnimationFrame(() => {
+      this.dimsPending = false;
+      if (!this.book) return;
+      this.anchored(() => this.layout());
+      this.update();
+    });
+  },
+
+  // ---------------------------------------------------------- pages visibles
+  update() {
+    const book = this.book;
+    if (!book) return;
+    const n = book.pages.length;
+    const y = window.scrollY, vh = this.vh;
+    const first = this.pageAt(y), last = this.pageAt(y + vh - 1);
+    const cur = y + vh >= this.endY - 2 && y > 0 ? this.pageAt(this.endY - 1) : this.pageAt(y + Math.min(vh * 0.35, 220));
+    if (cur !== this.cur) { this.cur = cur; this.pageChanged(); }
+    const pdf = book.kind === 'pdf';
+    // téléphones et tablettes : mémoire comptée, on garde moins de pages prêtes autour de la lecture
+    const W = pdf ? { before: 1, after: 2, keepB: 2, keepA: 3, ahead: 0 }
+      : isMobile ? { before: 1, after: 3, keepB: 2, keepA: 4, ahead: 7 }
+      : { before: 2, after: 4, keepB: 6, keepA: 10, ahead: 12 };
+    const want = [];
+    for (let i = Math.max(0, first - W.before); i <= Math.min(n - 1, last + W.after); i++) want.push(i);
+    const mid = (first + last) / 2;
+    want.sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid));
+    for (const i of want) this.want(i);
+    for (const i of Array.from(this.loadedSet)) if (i < first - W.keepB || i > last + W.keepA) this.unload(i);
+    const ahead = [];
+    for (let i = last + W.after + 1; i < Math.min(n, last + W.ahead); i++) ahead.push(i);
+    book.prioritize(want.concat(ahead));
+    // pages décompressées d'avance mais désormais loin de la lecture : on libère la mémoire
+    const freed = book.trim(first - W.keepB - 1, Math.max(last + W.keepA, last + W.ahead), cur);
+    for (const i of freed) { const s = this.st[i]; if (s && s.url && !s.img) { URL.revokeObjectURL(s.url); s.url = null; } }
+    this.refreshEtat(first, last);
+    this.savePosSoon();
+  },
+  /** « Décompression… » tant qu'une page à l'écran attend ses données. */
+  refreshEtat(first, last) {
+    const book = this.book;
+    if (!book || !(book instanceof RarBook)) return;
+    if (first == null) { first = this.pageAt(window.scrollY); last = this.pageAt(window.scrollY + this.vh - 1); }
+    let waiting = false;
+    for (let i = first; i <= last && i < book.pages.length; i++) { const p = book.pages[i]; if (!p.blob && !p.error) { waiting = true; break; } }
+    const txt = waiting ? (book.chain ? 'Décompression ' + book.chain + ' %' : 'Décompression…') : '';
+    const e = $('#etat');
+    if (e.textContent !== txt) e.textContent = txt;
+  },
+  want(i) {
+    const s = this.st[i];
+    s.wanted = true;
+    this.loadedSet.add(i);
+    if (this.book.kind === 'pdf') { if (s.renderW !== this.ws[i] && !s.task) this.queueRender(i); }
+    else this.loadImage(i);
+  },
+  unload(i) {
+    const s = this.st[i];
+    s.wanted = false;
+    this.loadedSet.delete(i);
+    if (s.task) { try { s.task.cancel(); } catch (e) { /* fini */ } s.task = null; }
+    if (s.img) { s.img.remove(); s.img = null; }
+    if (s.canvas) { s.canvas.width = 0; s.canvas.remove(); s.canvas = null; }
+    s.loaded = false;
+    s.renderW = 0;
+    if (!s.error) s.el.classList.add('attente');
+    if (this.book.kind !== 'pdf' && this.book.evict(i)) {
+      if (s.url) { URL.revokeObjectURL(s.url); s.url = null; }
+    }
+  },
+  loadImage(i) {
+    const s = this.st[i];
+    if (s.loaded || s.loading || s.error) return;
+    s.loading = true;
+    const tok = this.token, book = this.book;
+    book.load(i).then((blob) => {
+      if (tok !== this.token) return;
+      if (!s.url) s.url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.alt = '';
+      img.decoding = 'async';
+      img.draggable = false;
+      const done = () => {
+        s.loading = false;
+        if (tok !== this.token || !s.wanted) return;
+        if (s.img) s.img.remove();
+        s.img = img;
+        s.el.appendChild(img);
+        s.el.classList.remove('attente');
+        s.loaded = true;
+        const p = book.pages[i], nw = img.naturalWidth, nh = img.naturalHeight;
+        if (nw && nh && (!p.w || Math.abs(p.h / p.w - nh / nw) > 0.002)) book.setDims(i, nw, nh);
+        this.refreshEtat();
+        if (i === 0) this.captureCover(img);
+      };
+      const fail = () => { s.loading = false; s.error = new BookError('image illisible'); this.markBroken(i); };
+      img.src = s.url;
+      if (img.decode) img.decode().then(done, () => (img.naturalWidth ? done() : fail()));
+      else { img.onload = done; img.onerror = fail; }
+    }, (err) => {
+      s.loading = false;
+      if (tok !== this.token) return;
+      s.error = err;
+      this.markBroken(i);
+    });
+  },
+  markBroken(i) { const s = this.st[i]; s.el.classList.remove('attente'); s.el.classList.add('illisible'); },
+
+  queueRender(i) {
+    if (!this.renderQueue.includes(i)) this.renderQueue.push(i);
+    this.pumpRender();
+  },
+  async pumpRender() {
+    if (this.rendering) return;
+    this.rendering = true;
+    const tok = this.token;
+    try {
+      while (this.renderQueue.length && tok === this.token) {
+        const c = this.cur;
+        this.renderQueue.sort((a, b) => Math.abs(a - c) - Math.abs(b - c));
+        const i = this.renderQueue.shift();
+        const s = this.st[i];
+        if (!s || !s.wanted || s.renderW === this.ws[i]) continue;
+        try { await this.renderPdf(i, tok); }
+        catch (e) {
+          if (!e || e.name !== 'RenderingCancelledException') { console.warn('PDF', i + 1, e); s.error = e; this.markBroken(i); }
+        }
+      }
+    } finally { this.rendering = false; }
+  },
+  async renderPdf(i, tok) {
+    const s = this.st[i], doc = this.book.doc;
+    const page = await doc.getPage(i + 1);
+    if (tok !== this.token || !s.wanted) return;
+    const w = this.ws[i];
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const vp1 = page.getViewport({ scale: 1 });
+    let scale = (w * dpr) / vp1.width;
+    const maxPx = isMobile ? 5e6 : 16e6;
+    if (vp1.width * vp1.height * scale * scale > maxPx) scale = Math.sqrt(maxPx / (vp1.width * vp1.height));
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.floor(vp.width));
+    canvas.height = Math.max(1, Math.floor(vp.height));
+    const task = page.render({ canvas, viewport: vp });
+    s.task = task;
+    try { await task.promise; } finally { s.task = null; }
+    if (tok !== this.token || !s.wanted) { canvas.width = 0; return; }
+    if (s.canvas) { s.canvas.width = 0; s.canvas.remove(); }
+    s.canvas = canvas;
+    s.el.appendChild(canvas);
+    s.el.classList.remove('attente');
+    s.renderW = w;
+    s.loaded = true;
+    if (i === 0) this.captureCover(canvas);
+    try { page.cleanup(); } catch (e) { /* rien */ }
+  },
+  rerenderSoon() {
+    if (!this.book || this.book.kind !== 'pdf') return;
+    clearTimeout(this.rerenderTimer);
+    this.rerenderTimer = setTimeout(() => this.update(), 220);
+  },
+
+  // ---------------------------------------------------------- navigation
+  topIndex() { return this.pageAt(window.scrollY + 3); },
+  next() {
+    const n = this.book.pages.length;
+    const base = this.animTarget != null ? this.animTarget : this.topIndex();
+    this.goTo(Math.min(n, base + 1));
+  },
+  prev() {
+    const base = this.animTarget != null ? this.animTarget : (window.scrollY + this.vh >= this.endY - 2 && window.scrollY > this.offs[this.offs.length - 1] + 3 ? this.book.pages.length : this.topIndex());
+    this.goTo(Math.max(0, base - 1));
+  },
+  yOf(i) { return i <= 0 ? 0 : i >= this.offs.length ? this.endY : this.offs[i]; },
+  goTo(i, smooth = true) {
+    if (!this.book) return;
+    i = clamp(i, 0, this.book.pages.length);
+    this.animTarget = i;
+    this.scrollToY(this.yOf(i), smooth);
+  },
+  scrollToPage(i, frac) { window.scrollTo(window.scrollX, this.offs[i] + (frac || 0) * this.hs[i]); },
+  maxY() { return Math.max(0, document.documentElement.scrollHeight - this.vh); },
+  scrollToY(y, smooth) {
+    y = clamp(Math.round(y), 0, this.maxY());
+    if (!smooth || reduceMotion.matches) {
+      this.stopAnim();
+      window.scrollTo(window.scrollX, y);
+      this.animTarget = null;
+      return;
+    }
+    const from = window.scrollY;
+    const dist = Math.abs(y - from);
+    if (dist < 1) { this.animTarget = null; return; }
+    const dur = clamp(dist / 5, 170, 360);
+    this.anim = { from, to: y, t0: performance.now(), dur };
+    if (!this.animRaf) this.animRaf = requestAnimationFrame((t) => this.stepAnim(t));
+  },
+  retarget() {
+    if (!this.anim || this.animTarget == null) return;
+    this.anim = { from: window.scrollY, to: clamp(this.yOf(this.animTarget), 0, this.maxY()), t0: performance.now(), dur: this.anim.dur };
+  },
+  stepAnim(t) {
+    this.animRaf = 0;
+    const a = this.anim;
+    if (!a) return;
+    const k = clamp((t - a.t0) / a.dur, 0, 1);
+    const e = 1 - Math.pow(1 - k, 3);
+    window.scrollTo(window.scrollX, a.from + (a.to - a.from) * e);
+    if (k < 1) this.animRaf = requestAnimationFrame((tt) => this.stepAnim(tt));
+    else { this.anim = null; this.animTarget = null; }
+  },
+  stopAnim() {
+    if (this.animRaf) cancelAnimationFrame(this.animRaf);
+    this.animRaf = 0;
+    this.anim = null;
+    this.animTarget = null;
+  },
+
+  // ---------------------------------------------------------- zoom
+  setZoom(z, fx, fy) {
+    if (!this.book) return;
+    z = clamp(Math.round(z * 1000) / 1000, 0.25, 6);
+    if (Math.abs(z - this.zoom) < 0.0005) return;
+    fx = fx == null ? this.vw / 2 : fx;
+    fy = fy == null ? this.vh / 2 : fy;
+    const docY = window.scrollY + fy, docX = window.scrollX + fx;
+    const i = this.pageAt(docY);
+    const fracY = (docY - this.offs[i]) / this.hs[i];
+    const fracX = (docX - this.leftOf(i)) / this.ws[i];
+    this.stopAnim();
+    this.zoom = z;
+    this.layout();
+    window.scrollTo(this.leftOf(i) + fracX * this.ws[i] - fx, this.offs[i] + fracY * this.hs[i] - fy);
+    store.set('zoom', z);
+    this.updateZoomLabel();
+    this.update();
+    this.rerenderSoon();
+  },
+  zoomStep(dir, fx, fy) {
+    const steps = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 6];
+    const z = this.zoom;
+    let t = dir > 0 ? steps.find((s) => s > z + 0.001) : steps.slice().reverse().find((s) => s < z - 0.001);
+    if (t == null) t = dir > 0 ? 6 : 0.25;
+    this.setZoom(t, fx, fy);
+  },
+  setFit(fit) {
+    this.fit = fit;
+    store.set('fit', fit);
+    this.zoom = 1;
+    store.set('zoom', 1);
+    this.anchored(() => this.layout());
+    this.applyLook();
+    this.updateZoomLabel();
+    this.update();
+    this.rerenderSoon();
+  },
+  updateZoomLabel() { $('#btn-zoom').textContent = Math.round(this.zoom * 100) + ' %'; },
+
+  // ---------------------------------------------------------- interface
+  pageChanged() {
+    const n = this.book.pages.length;
+    const txt = (this.cur + 1) + ' / ' + n;
+    $('#compteur').textContent = txt;
+    const c = $('#curseur');
+    if (!this.dragging) c.value = this.cur + 1;
+    c.setAttribute('aria-valuetext', 'Page ' + txt);
+    if (this.root.classList.contains('sans-ui')) {
+      const b = $('#bulle-page');
+      b.textContent = txt;
+      b.classList.remove('efface');
+      clearTimeout(this.bulleTimer);
+      this.bulleTimer = setTimeout(() => b.classList.add('efface'), 1100);
+    }
+  },
+  showChrome(autoHide) {
+    this.root.classList.remove('sans-ui');
+    $('#bulle-page').classList.add('efface');
+    clearTimeout(this.chromeTimer);
+    if (autoHide && !coarse) this.chromeTimer = setTimeout(() => this.hideChrome(), 2800);
+  },
+  hideChrome(force) {
+    if (!force && (this.menuOpen() || this.overChrome || this.dragging)) return;
+    clearTimeout(this.chromeTimer);
+    this.root.classList.add('sans-ui');
+  },
+  toggleChrome() { if (this.root.classList.contains('sans-ui')) this.showChrome(true); else this.hideChrome(true); },
+  menuOpen() { return !$('#menu-zoom').hidden || !$('#menu-reglages').hidden; },
+  hideMenus() {
+    $('#menu-zoom').hidden = true;
+    $('#menu-reglages').hidden = true;
+    $('#btn-zoom').setAttribute('aria-expanded', 'false');
+    $('#btn-reglages').setAttribute('aria-expanded', 'false');
+  },
+  toggleMenu(id, btn) {
+    const m = $(id);
+    const show = m.hidden;
+    this.hideMenus();
+    if (show) { m.hidden = false; btn.setAttribute('aria-expanded', 'true'); this.showChrome(false); const f = m.querySelector('button'); if (f) f.focus(); }
+  },
+  toast(text, action, fn) {
+    const t = $('#toast');
+    $('#toast-texte').textContent = text;
+    const b = $('#toast-action');
+    b.hidden = !action;
+    b.textContent = action || '';
+    b.onclick = () => { t.hidden = true; if (fn) fn(); };
+    t.hidden = false;
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => { t.hidden = true; }, 6000);
+  },
+  savePosSoon() { clearTimeout(this.saveTimer); this.saveTimer = setTimeout(() => this.savePos(), 700); },
+  savePos() {
+    if (!this.book || !this.key || !this.offs.length) return;
+    const n = this.book.pages.length;
+    const y = window.scrollY, i = this.pageAt(y + 3);
+    const f = clamp((y - this.offs[i]) / this.hs[i], 0, 1);
+    // arrivé au bout : la BD est lue, on la rouvrira depuis le début
+    const done = y + this.vh >= this.offs[n - 1] + this.hs[n - 1] - 4;
+    if (done || (i === 0 && f < 0.02)) store.set('pos:' + this.key, null);
+    else store.set('pos:' + this.key, { i, f: Math.round(f * 1000) / 1000, t: Date.now() });
+    Library.progress(this.key, done ? n - 1 : i, Math.round(f * 1000) / 1000, done);
+  },
+  /** Vignette pour l'étagère « Reprendre la lecture », tirée de la première page. */
+  captureCover(src) {
+    if (this.coverTaken || !this.key) return;
+    this.coverTaken = true;
+    Library.saveCover(this.key, src);
+  },
+};
+
+// ------------------------------------------------------------- plein écran
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+function exitFs() { const d = document; (d.exitFullscreen || d.webkitExitFullscreen || (() => {})).call(d); }
+async function toggleFullscreen() {
+  if (fsElement()) { exitFs(); return; }
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (req) {
+    try { await req.call(el, { navigationUI: 'hide' }); Reader.hideChrome(true); return; }
+    catch (e) { /* refusé : repli ci-dessous */ }
+  }
+  Reader.hideChrome(true);
+  Reader.toast("Le plein écran n'est pas disponible ici : l'interface est masquée. Touchez la page pour la retrouver.");
+}
+function onFsChange() {
+  const on = !!fsElement();
+  $('#btn-plein .ico-entrer').hidden = on;
+  $('#btn-plein .ico-sortir').hidden = !on;
+  $('#btn-plein').setAttribute('aria-label', on ? 'Quitter le plein écran' : 'Plein écran');
+  if (Reader.book) requestAnimationFrame(() => { Reader.anchored(() => Reader.layout()); Reader.update(); });
+}
+document.addEventListener('fullscreenchange', onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
+
+// garder l'écran allumé pendant la lecture, là où le navigateur le permet
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on) {
+      if (wakeLock || !navigator.wakeLock || document.visibilityState !== 'visible') return;
+      const lock = await navigator.wakeLock.request('screen');
+      if (!Reader.book) { lock.release().catch(() => {}); return; }
+      wakeLock = lock;
+      lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
+    } else if (wakeLock) {
+      const lock = wakeLock;
+      wakeLock = null;
+      await lock.release();
+    }
+  } catch (e) { /* refusé par le navigateur ou le cadre : sans conséquence */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Reader.book) keepAwake(true); });
+
+// ------------------------------------------------------------- événements du lecteur
+let lastY = 0, scrollRaf = 0;
+window.addEventListener('scroll', () => {
+  if (!Reader.book || scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = 0;
+    const y = window.scrollY;
+    if (y - lastY > 30 && !Reader.anim) Reader.hideChrome();
+    if (Math.abs(y - lastY) > 30) lastY = y;
+    Reader.update();
+  });
+}, { passive: true });
+
+let resizeRaf = 0;
+window.addEventListener('resize', () => {
+  if (!Reader.book || resizeRaf) return;
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = 0;
+    const R = Reader;
+    if (!R.book) return;
+    const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
+    // Sur iPhone, la barre de Safari se replie pendant le défilement et change la hauteur :
+    // on ne recalcule la mise en page que si la largeur change, ou si la hauteur compte vraiment.
+    const dh = Math.abs(vh - R.vh);
+    const relayout = vw !== R.vw || (R.fit === 'height' ? dh > 60 : !R.phone && dh > 0);
+    if (relayout) { R.anchored(() => R.layout()); R.rerenderSoon(); }
+    else R.vh = vh;
+    R.update();
+  });
+});
+
+['wheel', 'touchstart', 'pointerdown'].forEach((ev) => window.addEventListener(ev, (e) => {
+  if (Reader.anim && !(ev === 'wheel' && e.ctrlKey)) Reader.stopAnim();
+}, { passive: true }));
+
+window.addEventListener('keydown', (e) => {
+  if (!Reader.book || Reader.root.hidden) return;
+  if (modalOpen()) return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (e.key === 'Escape') { if (Reader.menuOpen()) { Reader.hideMenus(); e.preventDefault(); } return; }
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.altKey) return;
+  const mod = e.ctrlKey || e.metaKey;
+  let handled = true;
+  switch (e.key) {
+    case 'ArrowRight': if (mod) { handled = false; break; } Reader.next(); Reader.hideChrome(); break;
+    case 'ArrowLeft': if (mod) { handled = false; break; } Reader.prev(); Reader.hideChrome(); break;
+    case 'Home': Reader.goTo(0); break;
+    case 'End': Reader.goTo(Reader.book.pages.length - 1); break;
+    case '+': case '=': case 'Add': Reader.zoomStep(1); break;
+    case '-': case '_': case 'Subtract': Reader.zoomStep(-1); break;
+    case 'f': case 'F': if (mod) { handled = false; break; } toggleFullscreen(); break;
+    default:
+      if (e.code === 'Digit0' || e.code === 'Numpad0' || e.key === '0' || e.key === 'à') Reader.setZoom(1);
+      else handled = false;
+  }
+  if (handled) e.preventDefault();
+});
+
+// zoom à la molette (Ctrl/⌘) et au pincement du pavé tactile
+let wheelZoom = null;
+window.addEventListener('wheel', (e) => {
+  if (!Reader.book || Reader.root.hidden || !(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+  const factor = Math.exp(-e.deltaY * unit * 0.0022);
+  if (!wheelZoom) {
+    wheelZoom = { z: Reader.zoom, x: e.clientX, y: e.clientY };
+    requestAnimationFrame(() => { const w = wheelZoom; wheelZoom = null; Reader.setZoom(w.z, w.x, w.y); });
+  }
+  wheelZoom.z = clamp(wheelZoom.z * factor, 0.25, 6);
+  wheelZoom.x = e.clientX; wheelZoom.y = e.clientY;
+}, { passive: false });
+// Safari émet aussi des « gesture events » : au pavé tactile du Mac, ce sont eux qui portent le zoom ;
+// sur iPhone et iPad, le pincement est déjà suivi doigt à doigt (touchmove) : on bloque seulement
+// le zoom natif de la page, sans zoomer une seconde fois.
+let gestureZ = 1, touchesDown = 0;
+['touchstart', 'touchend', 'touchcancel'].forEach((ev) => window.addEventListener(ev, (e) => { touchesDown = e.touches.length; }, { passive: true, capture: true }));
+window.addEventListener('gesturestart', (e) => { if (!Reader.book || Reader.root.hidden) return; e.preventDefault(); gestureZ = Reader.zoom; });
+window.addEventListener('gesturechange', (e) => {
+  if (!Reader.book || Reader.root.hidden) return;
+  e.preventDefault();
+  if (touchesDown || touch.pinch) return;
+  if (!wheelZoom) {
+    wheelZoom = { z: gestureZ * e.scale, x: e.clientX, y: e.clientY };
+    requestAnimationFrame(() => { const w = wheelZoom; wheelZoom = null; Reader.setZoom(w.z, w.x, w.y); });
+  } else wheelZoom.z = gestureZ * e.scale;
+});
+window.addEventListener('gestureend', (e) => { if (Reader.book) e.preventDefault(); });
+
+// gestes tactiles : pincer pour zoomer, toucher pour l'interface, double-toucher pour zoomer
+const touch = { pinch: null, tap: null, lastTap: null, tapTimer: 0 };
+const dist2 = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+Reader.root.addEventListener('touchstart', (e) => {
+  if (e.target.closest('.barre, .menu, .toast, .fin')) return;
+  if (e.touches.length === 2) {
+    const [a, b] = e.touches;
+    touch.pinch = { d0: dist2(a, b), z0: Reader.zoom, fx: (a.clientX + b.clientX) / 2, fy: (a.clientY + b.clientY) / 2, s: 1 };
+    touch.tap = null;
+    const ox = window.scrollX + touch.pinch.fx, oy = window.scrollY + touch.pinch.fy;
+    Reader.pagesEl.style.transformOrigin = ox + 'px ' + oy + 'px';
+  } else if (e.touches.length === 1) {
+    const t = e.touches[0];
+    touch.tap = { x: t.clientX, y: t.clientY, t: performance.now(), moved: false };
+  } else touch.tap = null;
+}, { passive: true });
+Reader.root.addEventListener('touchmove', (e) => {
+  if (touch.pinch && e.touches.length >= 2) {
+    e.preventDefault();
+    const [a, b] = e.touches;
+    const s = clamp(dist2(a, b) / touch.pinch.d0, 0.25 / touch.pinch.z0, 6 / touch.pinch.z0);
+    touch.pinch.s = s;
+    touch.pinch.cx = (a.clientX + b.clientX) / 2;
+    touch.pinch.cy = (a.clientY + b.clientY) / 2;
+    const dx = touch.pinch.cx - touch.pinch.fx, dy = touch.pinch.cy - touch.pinch.fy;
+    Reader.pagesEl.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')';
+  } else if (touch.tap) {
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - touch.tap.x) > 10 || Math.abs(t.clientY - touch.tap.y) > 10) touch.tap.moved = true;
+  }
+}, { passive: false });
+Reader.root.addEventListener('touchend', (e) => {
+  if (touch.pinch) {
+    if (e.touches.length < 2) {
+      const p = touch.pinch;
+      touch.pinch = null;
+      Reader.pagesEl.style.transform = '';
+      if (Math.abs(p.s - 1) > 0.01) {
+        // le point sous les doigts suit le geste
+        const fx = p.cx == null ? p.fx : p.cx, fy = p.cy == null ? p.fy : p.cy;
+        const docY = window.scrollY + p.fy, docX = window.scrollX + p.fx;
+        const i = Reader.pageAt(docY);
+        const fracY = (docY - Reader.offs[i]) / Reader.hs[i], fracX = (docX - Reader.leftOf(i)) / Reader.ws[i];
+        Reader.zoom = clamp(p.z0 * p.s, 0.25, 6);
+        Reader.layout();
+        window.scrollTo(Reader.leftOf(i) + fracX * Reader.ws[i] - fx, Reader.offs[i] + fracY * Reader.hs[i] - fy);
+        store.set('zoom', Reader.zoom);
+        Reader.updateZoomLabel();
+        Reader.update();
+        Reader.rerenderSoon();
+      }
+    }
+    return;
+  }
+  const tap = touch.tap;
+  touch.tap = null;
+  if (!tap || tap.moved || performance.now() - tap.t > 350 || e.touches.length) return;
+  if (e.target.closest('.barre, .menu, .toast, .fin, button')) return;
+  const now = performance.now();
+  if (touch.lastTap && now - touch.lastTap.t < 320 && Math.hypot(tap.x - touch.lastTap.x, tap.y - touch.lastTap.y) < 40) {
+    clearTimeout(touch.tapTimer);
+    touch.lastTap = null;
+    e.preventDefault();
+    Reader.setZoom(Reader.zoom > 1.2 ? 1 : 2, tap.x, tap.y);
+    return;
+  }
+  touch.lastTap = { x: tap.x, y: tap.y, t: now };
+  clearTimeout(touch.tapTimer);
+  touch.tapTimer = setTimeout(() => { touch.lastTap = null; if (!Reader.menuOpen()) Reader.toggleChrome(); else Reader.hideMenus(); }, 300);
+});
+// geste interrompu par le système (appel, centre de contrôle…) : on efface l'aperçu du zoom
+Reader.root.addEventListener('touchcancel', () => {
+  touch.tap = null;
+  if (touch.pinch) { touch.pinch = null; Reader.pagesEl.style.transform = ''; }
+});
+
+// souris : l'interface apparaît au mouvement, disparaît au repos
+let lastMouse = { x: 0, y: 0 };
+Reader.root.addEventListener('mousemove', (e) => {
+  if (coarse || e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+  if (Math.abs(e.clientX - lastMouse.x) + Math.abs(e.clientY - lastMouse.y) < 6) return;
+  lastMouse = { x: e.clientX, y: e.clientY };
+  Reader.showChrome(true);
+});
+Reader.root.addEventListener('click', (e) => {
+  if (coarse) return;
+  if (e.target.closest('.barre, .menu, .toast, .fin')) return;
+  if (Reader.menuOpen()) { Reader.hideMenus(); return; }
+  Reader.toggleChrome();
+});
+['barre-haut', 'barre-bas', 'menu-zoom', 'menu-reglages'].forEach((id) => {
+  const el = document.getElementById(id);
+  el.addEventListener('mouseenter', () => { Reader.overChrome = true; clearTimeout(Reader.chromeTimer); });
+  el.addEventListener('mouseleave', () => { Reader.overChrome = false; Reader.showChrome(true); });
+});
+
+$('#btn-retour').addEventListener('click', () => Reader.close());
+$('#btn-plus').addEventListener('click', () => Reader.zoomStep(1));
+$('#btn-moins').addEventListener('click', () => Reader.zoomStep(-1));
+$('#btn-plein').addEventListener('click', () => toggleFullscreen());
+$('#btn-zoom').addEventListener('click', (e) => { e.stopPropagation(); Reader.toggleMenu('#menu-zoom', $('#btn-zoom')); });
+$('#btn-reglages').addEventListener('click', (e) => { e.stopPropagation(); Reader.toggleMenu('#menu-reglages', $('#btn-reglages')); });
+$$('#menu-zoom [data-fit]').forEach((b) => b.addEventListener('click', () => { Reader.setFit(b.dataset.fit); Reader.hideMenus(); }));
+$$('#menu-zoom [data-zoom]').forEach((b) => b.addEventListener('click', () => { Reader.setZoom(Number(b.dataset.zoom)); Reader.hideMenus(); }));
+$$('#menu-reglages [data-reglage]').forEach((row) => row.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+  const k = row.dataset.reglage;
+  Reader[k] = b.dataset.val;
+  store.set(k, b.dataset.val);
+  Reader.applyLook();
+  if (k === 'gap') { Reader.anchored(() => Reader.layout()); Reader.update(); }
+})));
+document.addEventListener('click', (e) => {
+  if (Reader.menuOpen() && !e.target.closest('.menu, #btn-zoom, #btn-reglages')) Reader.hideMenus();
+});
+const curseur = $('#curseur');
+curseur.addEventListener('input', () => {
+  Reader.dragging = true;
+  Reader.goTo(Number(curseur.value) - 1, false);
+  $('#compteur').textContent = curseur.value + ' / ' + Reader.book.pages.length;
+});
+curseur.addEventListener('change', () => { Reader.dragging = false; curseur.blur(); Reader.root.focus({ preventScroll: true }); });
+curseur.addEventListener('pointerup', () => { Reader.dragging = false; });
+$('#compteur').addEventListener('click', () => {
+  const c = $('#allera-champ');
+  c.max = Reader.book.pages.length;
+  c.value = Reader.cur + 1;
+  openModal('#allera');
+  setTimeout(() => c.select(), 40);
+});
+$('#allera-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = parseInt($('#allera-champ').value, 10);
+  closeModal($('#allera'));
+  if (v >= 1) Reader.goTo(Math.min(v, Reader.book.pages.length) - 1, false);
+  Reader.root.focus({ preventScroll: true });
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') Reader.savePos(); });
+window.addEventListener('pagehide', () => Reader.savePos());
+
+// ====================================================================
+//  Accueil : fichiers, glisser-déposer, iCloud
+// ====================================================================
+const input = $('#fichier');
+// Sur iPhone et Android : un seul fichier à la fois et aucun filtre de type.
+// – « multiple » met le sélecteur d'iOS en mode cases à cocher, avec un bouton « Ouvrir » à valider
+//   qui reste grisé pour les fichiers de Google Drive : un simple toucher sur la BD doit suffire ;
+// – un filtre (accept) grise les .cbz/.cbr, que ces systèmes ne connaissent pas.
+if (!isMobile) {
+  input.multiple = true;
+  input.accept = '.cbz,.cbr,.cbt,.cb7,.zip,.rar,.tar,.pdf,image/*,application/pdf,application/zip,application/x-rar-compressed,application/vnd.comicbook+zip,application/vnd.comicbook-rar';
+}
+function pickFile() {
+  input.value = '';
+  input.click();
+}
+input.addEventListener('change', () => {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  const r = relinkFor;
+  relinkFor = null;
+  // BD de l'étagère sans copie : le fichier choisi reprend sa place et sa page
+  if (r && files.length === 1 && files[0].name === r.name) {
+    openFiles(files, { key: r.key, title: r.title, resume: r.done ? null : { i: r.page || 0, f: r.frac || 0 } });
+    return;
+  }
+  openFiles(files);
+});
+$$('[data-choisir]').forEach((b) => b.addEventListener('click', () => pickFile()));
+
+let dragDepth = 0;
+const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+window.addEventListener('dragenter', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  document.body.classList.add('survol');
+  $('#depot-voile').hidden = !Reader.book && window.innerWidth > 680 ? true : false;
+  if (Reader.book) $('#depot-voile').hidden = false;
+});
+window.addEventListener('dragover', (e) => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+window.addEventListener('dragleave', () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (!dragDepth) { document.body.classList.remove('survol'); $('#depot-voile').hidden = true; }
+});
+window.addEventListener('drop', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove('survol');
+  $('#depot-voile').hidden = true;
+  openFiles(e.dataTransfer.files);
+});
+
+// ====================================================================
+//  Bibliothèque : les BD déjà ouvertes, gardées dans ce navigateur
+//  (IndexedDB) pour les rouvrir en un clic, à la page où on s'était arrêté.
+// ====================================================================
+const Library = {
+  MAX_BOOKS: 24,
+  // place maximale prise par les copies de BD (le navigateur peut en accorder moins)
+  BUDGET: isMobile ? 3e9 : 12e9,
+  ready: null,
+  open() {
+    if (this.ready) return this.ready;
+    this.ready = new Promise((resolve) => {
+      let req;
+      try { req = indexedDB.open('planches', 1); } catch (e) { resolve(null); return; }
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        for (const name of ['livres', 'fichiers', 'vignettes']) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' });
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        db.onversionchange = () => { db.close(); this.ready = null; };
+        resolve(db);
+      };
+      req.onerror = () => resolve(null);
+      req.onblocked = () => resolve(null);
+    }).catch(() => null);
+    return this.ready;
+  },
+  /** Une transaction ; body(t) peut renvoyer une requête dont le résultat est rendu. */
+  async run(names, mode, body) {
+    const db = await this.open();
+    if (!db) throw new Error('stockage indisponible');
+    return new Promise((resolve, reject) => {
+      let result, t;
+      try { t = db.transaction(names, mode); } catch (e) { reject(e); return; }
+      const r = body(t);
+      if (r && typeof r === 'object' && 'onsuccess' in r) r.onsuccess = () => { result = r.result; };
+      t.oncomplete = () => resolve(result);
+      t.onerror = () => reject(t.error);
+      t.onabort = () => reject(t.error || new Error('transaction abandonnée'));
+    });
+  },
+  async list() {
+    const all = await this.run(['livres'], 'readonly', (t) => t.objectStore('livres').getAll()).catch(() => []);
+    return (all || []).sort((a, b) => (b.lastRead || 0) - (a.lastRead || 0));
+  },
+  get(key) { return this.run(['livres'], 'readonly', (t) => t.objectStore('livres').get(key)).catch(() => null); },
+  put(rec) { return this.run(['livres'], 'readwrite', (t) => t.objectStore('livres').put(rec)); },
+  async update(key, patch) {
+    return this.run(['livres'], 'readwrite', (t) => {
+      const st = t.objectStore('livres');
+      const g = st.get(key);
+      g.onsuccess = () => { if (g.result) st.put(Object.assign(g.result, patch)); };
+    }).catch(() => {});
+  },
+  files(key) { return this.run(['fichiers'], 'readonly', (t) => t.objectStore('fichiers').get(key)).catch(() => null); },
+  cover(key) { return this.run(['vignettes'], 'readonly', (t) => t.objectStore('vignettes').get(key)).catch(() => null); },
+  async dropFiles(key) {
+    await this.run(['fichiers'], 'readwrite', (t) => t.objectStore('fichiers').delete(key)).catch(() => {});
+    await this.update(key, { stored: false });
+  },
+  async remove(key) {
+    await this.run(['livres', 'fichiers', 'vignettes'], 'readwrite', (t) => {
+      for (const name of ['livres', 'fichiers', 'vignettes']) t.objectStore(name).delete(key);
+    }).catch(() => {});
+    store.set('pos:' + key, null);
+  },
+  /** BD qu'on vient d'ouvrir : on la note, puis on en garde une copie si la place le permet. */
+  async add(key, book, files) {
+    try {
+      const prev = await this.get(key);
+      const size = files.reduce((n, f) => n + (f.size || 0), 0);
+      const rec = Object.assign({ stored: false, page: 0, frac: 0, done: false, added: Date.now() }, prev || {}, {
+        key, title: book.title, name: files[0].name, names: files.map((f) => f.name), size,
+        pages: book.pages.length, lastRead: Date.now(),
+      });
+      await this.put(rec);
+      await this.prune();
+      renderLibrary();
+      if (!rec.stored) await this.keep(rec, files);
+    } catch (e) { console.warn('Bibliothèque', e); }
+  },
+  /** Copie du fichier dans le navigateur : d'abord la place, en libérant les lectures les plus anciennes. */
+  async keep(rec, files) {
+    let budget = this.BUDGET;
+    try {
+      const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+      if (est && est.quota) budget = Math.min(budget, est.quota * 0.7);
+    } catch (e) { /* estimation indisponible */ }
+    if (rec.size > budget) { await this.update(rec.key, { stored: false, tooBig: true }); renderLibrary(); return; }
+    const others = (await this.list()).filter((r) => r.stored && r.key !== rec.key).sort((a, b) => a.lastRead - b.lastRead);
+    let used = others.reduce((n, r) => n + (r.size || 0), 0);
+    while (used + rec.size > budget && others.length) {
+      const old = others.shift();
+      await this.dropFiles(old.key);
+      used -= old.size || 0;
+    }
+    try {
+      await this.run(['fichiers'], 'readwrite', (t) => t.objectStore('fichiers').put({ key: rec.key, files }));
+      await this.update(rec.key, { stored: true, tooBig: false });
+      this.persist();
+    } catch (e) {
+      console.warn('Copie impossible', e);
+      await this.update(rec.key, { stored: false, tooBig: true });
+    }
+    renderLibrary();
+  },
+  /** Au-delà de MAX_BOOKS, les BD lues il y a le plus longtemps quittent l'étagère. */
+  async prune() {
+    const all = await this.list();
+    for (const r of all.slice(this.MAX_BOOKS)) await this.remove(r.key);
+  },
+  progress(key, page, frac, done) {
+    if (!key || key === 'demo') return;
+    this.update(key, { page, frac, done: !!done, lastRead: Date.now() });
+  },
+  async saveCover(key, src) {
+    try {
+      const rec = await this.get(key);
+      if (!rec || rec.hasCover) return;
+      const sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+      if (!sw || !sh) return;
+      const w = 240, h = Math.min(480, Math.round(w * sh / sw));
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      // la couverture occupe le haut de la vignette, comme sur un présentoir
+      const scale = w / sw;
+      ctx.drawImage(src, 0, 0, sw, Math.min(sh, h / scale), 0, 0, w, Math.min(h, sh * scale));
+      const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.78));
+      c.width = 0;
+      if (!blob) return;
+      await this.run(['vignettes'], 'readwrite', (t) => t.objectStore('vignettes').put({ key, blob }));
+      await this.update(key, { hasCover: true });
+    } catch (e) { /* vignette facultative */ }
+  },
+  persisted: false,
+  persist() {
+    if (this.persisted || !navigator.storage || !navigator.storage.persist) return;
+    this.persisted = true;
+    navigator.storage.persisted().then((p) => p || navigator.storage.persist()).catch(() => {});
+  },
+};
+
+/** Rouvrir une BD de l'étagère, à la page où on l'avait laissée. */
+let relinkFor = null;
+async function openFromLibrary(key) {
+  const rec = await Library.get(key);
+  if (!rec) { renderLibrary(); return; }
+  const resume = rec.done ? null : { i: rec.page || 0, f: rec.frac || 0 };
+  if (rec.stored) {
+    Loading.show('Ouverture de « ' + rec.title + ' »…');
+    const entry = await Library.files(key);
+    const blobs = entry && entry.files;
+    if (blobs && blobs.length) {
+      const names = rec.names || [rec.name];
+      const files = blobs.map((b, i) => (b instanceof File ? b : new File([b], names[i] || rec.name, { type: b.type || '' })));
+      await openFiles(files, { key, title: rec.title, resume, noLibrary: true });
+      if (Reader.book) Library.update(key, { lastRead: Date.now() });
+      return;
+    }
+    Loading.hide();
+    await Library.update(key, { stored: false });
+  }
+  // aucune copie sur l'appareil : on redemande le fichier, la lecture reprendra au bon endroit
+  relinkFor = rec;
+  const where = rec.done ? 'depuis le début' : 'page ' + ((rec.page || 0) + 1);
+  showMessage('Rouvrir « ' + rec.title + ' »',
+    (rec.tooBig ? "Cette BD est trop lourde pour être gardée sur l'appareil. " : "Cette BD n'est plus gardée sur l'appareil. ")
+    + 'Choisissez à nouveau son fichier (' + rec.name + ')' + NB + ': la lecture reprendra ' + where + '.', 'Choisir le fichier');
+}
+
+let coverUrls = [];
+let renderTimer = 0;
+function renderLibrary() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(drawLibrary, 30);
+}
+async function drawLibrary() {
+  const sec = $('#reprendre');
+  const list = await Library.list();
+  if (Reader.book) return;
+  coverUrls.forEach((u) => URL.revokeObjectURL(u));
+  coverUrls = [];
+  if (!list.length) { sec.hidden = true; $('#etagere').replaceChildren(); return; }
+  const items = list.map((r) => {
+    const pages = r.pages || 1;
+    const page = r.done ? pages : Math.min(pages, (r.page || 0) + 1);
+    const pct = r.done ? 100 : Math.round(100 * Math.min(1, ((r.page || 0) + (r.frac || 0)) / pages));
+    const img = el('img', { alt: '', loading: 'lazy', decoding: 'async' });
+    const couv = el('span', { class: 'couv' + (r.hasCover ? '' : ' sans-image') },
+      r.hasCover ? img : el('span', { class: 'initiale', 'aria-hidden': 'true', text: (r.title || '?').trim().charAt(0).toUpperCase() }));
+    if (r.hasCover) Library.cover(r.key).then((v) => { if (v && v.blob) { const u = URL.createObjectURL(v.blob); coverUrls.push(u); img.src = u; } });
+    const etat = r.done ? 'Terminée, à relire' : 'Page ' + page + ' sur ' + pages;
+    const ouvrir = el('button', { class: 'livre-ouvrir', type: 'button', 'aria-label': (r.done ? 'Relire « ' : 'Reprendre « ') + r.title + ' », ' + etat.toLowerCase(), onclick: () => openFromLibrary(r.key) },
+      couv,
+      el('span', { class: 'livre-titre', text: r.title }),
+      el('span', { class: 'livre-page', text: etat }),
+      el('span', { class: 'avancement', 'aria-hidden': 'true' }, el('i', { style: 'width:' + pct + '%' })),
+      r.stored ? null : el('span', { class: 'livre-note', text: 'Fichier à choisir à nouveau' }));
+    const li = el('li', { class: 'livre' }, ouvrir);
+    const retirer = el('button', { class: 'livre-retirer', type: 'button', text: 'Retirer', 'aria-label': 'Retirer « ' + r.title + ' » de l\'étagère', onclick: () => {
+      const conf = el('span', { class: 'livre-confirmer' },
+        el('button', { class: 'oui', type: 'button', text: 'Retirer', onclick: async () => { await Library.remove(r.key); renderLibrary(); } }),
+        el('button', { type: 'button', text: 'Garder', onclick: () => { conf.replaceWith(retirer); retirer.focus(); } }));
+      retirer.replaceWith(conf);
+      conf.firstChild.focus();
+    } });
+    li.appendChild(retirer);
+    return li;
+  });
+  $('#etagere').replaceChildren(...items);
+  const used = list.filter((r) => r.stored).reduce((n, r) => n + (r.size || 0), 0);
+  $('#reprendre-place').textContent = (used ? fmtBytes(used) + ' gardés' : 'Gardées') + " sur cet appareil, rien n'est envoyé sur internet.";
+  sec.hidden = false;
+}
+
+// ====================================================================
+//  Application installable : écran d'accueil, hors ligne, couleur de barre
+// ====================================================================
+function setThemeColor(reading) {
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute('content', reading ? '#000000' : '#ffffff');
+}
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+if (isIOS && !standalone && !store.get('astuce-ios', false)) $('#astuce-ios').hidden = false;
+$('#astuce-ok').addEventListener('click', () => { store.set('astuce-ios', true); $('#astuce-ios').hidden = true; });
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $('#btn-installer').hidden = false;
+});
+$('#btn-installer').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  const p = installPrompt;
+  installPrompt = null;
+  $('#btn-installer').hidden = true;
+  try { await p.prompt(); } catch (e) { /* refusé */ }
+});
+window.addEventListener('appinstalled', () => { $('#btn-installer').hidden = true; });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+if ('launchQueue' in window && window.launchQueue && typeof window.launchQueue.setConsumer === 'function') {
+  window.launchQueue.setConsumer(async (params) => {
+    if (!params || !params.files || !params.files.length) return;
+    try { openFiles(await Promise.all(params.files.map((h) => h.getFile()))); } catch (e) { showError(e); }
+  });
+}
+renderLibrary();
+
+// ====================================================================
+//  BD d'essai : planches dessinées à la volée, emballées dans un CBZ
+// ====================================================================
+function storedZip(files) {
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), crc = F.crc32(f.data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x800, true);
+    lh.setUint16(12, 0x21, true); lh.setUint32(14, crc, true); lh.setUint32(18, f.data.length, true);
+    lh.setUint32(22, f.data.length, true); lh.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(lh.buffer), name, f.data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x800, true);
+    ch.setUint16(14, 0x21, true); ch.setUint32(16, crc, true); ch.setUint32(20, f.data.length, true);
+    ch.setUint32(24, f.data.length, true); ch.setUint16(28, name.length, true); ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + f.data.length;
+  }
+  const cdSize = central.reduce((s, p) => s + p.length, 0);
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true); eo.setUint16(8, files.length, true); eo.setUint16(10, files.length, true);
+  eo.setUint32(12, cdSize, true); eo.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(eo.buffer)], { type: 'application/zip' });
+}
+
+const DEMO = [
+  { titre: 'La planche qui défile', sous: "Une BD d'essai pour découvrir Planches" },
+  { cases: [["Ici, pas de page à tourner.", 'cap'], ['Faites simplement défiler vers le bas : les planches s\'enchaînent.', 'bulle']], deco: 'fleche' },
+  { cases: [['Au clavier, la flèche → passe à la page suivante.', 'bulle'], ['Et la flèche ← revient à la précédente.', 'bulle']], deco: 'touches' },
+  { cases: [['Envie de détails ?', 'cap'], ['Zoomez avec + et −, Ctrl + molette, ou en pinçant l\'écran.', 'bulle']], deco: 'loupe' },
+  { cases: [['La touche F passe en plein écran.', 'bulle'], ['Échap pour en sortir.', 'cap']], deco: 'cadre' },
+  { cases: [['Touchez ou cliquez la page : les commandes apparaissent ou s\'effacent.', 'bulle'], ['Le compteur en bas indique où vous en êtes.', 'cap']], deco: 'compteur' },
+  { cases: [['Vos BD maintenant ?', 'cap'], ['CBZ, CBR ou PDF, depuis l\'appareil, Google Drive ou iCloud Drive.', 'bulle']], deco: 'livres' },
+  { fin: true },
+];
+
+async function makeDemo() {
+  try { await document.fonts.load('700 40px "Shantell Sans"'); } catch (e) { /* police de repli */ }
+  const fam = '"Shantell Sans", "Comic Neue", "Trebuchet MS", sans-serif';
+  const W = 1000, H = 1414;
+  const blobs = [];
+  for (let n = 0; n < DEMO.length; n++) {
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    drawDemoPage(g, W, H, DEMO[n], n, fam);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.9));
+    blobs.push({ name: 'planche-' + String(n + 1).padStart(2, '0') + '.jpg', data: new Uint8Array(await blob.arrayBuffer()) });
+  }
+  return new File([storedZip(blobs)], "BD d'essai.cbz", { type: 'application/zip' });
+}
+
+function drawDemoPage(g, W, H, page, n, fam) {
+  const ink = '#000', M = 46, gut = 22;
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  const panel = (x, y, w, h, fill, body) => {
+    g.save();
+    g.beginPath(); g.rect(x, y, w, h); g.clip();
+    g.fillStyle = fill; g.fillRect(x, y, w, h);
+    if (body) body(x, y, w, h);
+    g.restore();
+    g.lineWidth = 7; g.strokeStyle = ink; g.strokeRect(x, y, w, h);
+  };
+  const wrap = (text, maxW, size, weight) => {
+    g.font = (weight || 700) + ' ' + size + 'px ' + fam;
+    const words = text.split(' '), lines = [];
+    let line = '';
+    for (const w of words) { const t = line ? line + ' ' + w : w; if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+    if (line) lines.push(line);
+    return lines;
+  };
+  const bubble = (text, cx, cy, maxW, maxH, tail) => {
+    let size = 40, lines, lh, tw, th, rx, ry;
+    for (;;) {
+      lines = wrap(text, (maxW - 44) / 1.42, size);
+      lh = size * 1.22;
+      tw = Math.max(...lines.map((l) => g.measureText(l).width));
+      th = lines.length * lh;
+      rx = (tw / 2) * 1.42 + 22; ry = (th / 2) * 1.42 + 20;
+      if ((rx * 2 <= maxW && ry * 2 <= maxH) || size <= 22) break;
+      size -= 2;
+    }
+    g.fillStyle = '#fff'; g.strokeStyle = ink; g.lineWidth = 6;
+    if (tail) {
+      g.beginPath(); g.moveTo(cx - rx * 0.28, cy + ry * 0.82); g.lineTo(tail[0], tail[1]); g.lineTo(cx + rx * 0.02, cy + ry * 0.9);
+      g.fill(); g.stroke();
+    }
+    g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+    if (tail) {
+      g.beginPath(); g.moveTo(cx - rx * 0.28 + 3, cy + ry * 0.82 - 4); g.lineTo(tail[0], tail[1] - 6); g.lineTo(cx + rx * 0.02 - 3, cy + ry * 0.9 - 4); g.fill();
+    }
+    g.font = '700 ' + size + 'px ' + fam;
+    g.fillStyle = ink; g.textAlign = 'center'; g.textBaseline = 'middle';
+    lines.forEach((l, i) => g.fillText(l, cx, cy - ((lines.length - 1) * lh) / 2 + i * lh));
+  };
+  const caption = (text, x, y, maxW) => {
+    const size = 34, lines = wrap(text, maxW - 36, size, 600), lh = size * 1.25;
+    const w = Math.min(maxW, Math.max(...lines.map((l) => g.measureText(l).width)) + 36), h = lines.length * lh + 26;
+    g.fillStyle = '#ffcf3f'; g.fillRect(x, y, w, h);
+    g.lineWidth = 4; g.strokeStyle = ink; g.strokeRect(x, y, w, h);
+    g.fillStyle = ink; g.textAlign = 'left'; g.textBaseline = 'top';
+    lines.forEach((l, i) => g.fillText(l, x + 18, y + 14 + i * lh));
+  };
+  const sky = (x, y, w, h, sun) => {
+    g.fillStyle = '#8ccbeb'; g.fillRect(x, y, w, h);
+    if (sun) { g.fillStyle = '#ffcf3f'; g.lineWidth = 5; g.strokeStyle = ink; g.beginPath(); g.arc(x + w - 110, y + 110, 52, 0, Math.PI * 2); g.fill(); g.stroke(); }
+    g.fillStyle = '#7fbf6a'; g.lineWidth = 6; g.strokeStyle = ink;
+    g.beginPath(); g.moveTo(x - 10, y + h + 10); g.lineTo(x - 10, y + h * 0.78);
+    g.bezierCurveTo(x + w * 0.3, y + h * 0.66, x + w * 0.55, y + h * 0.9, x + w + 10, y + h * 0.74);
+    g.lineTo(x + w + 10, y + h + 10); g.closePath(); g.fill(); g.stroke();
+  };
+  const balloon = (bx, by, r) => {
+    g.strokeStyle = ink; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(bx, by + r); g.bezierCurveTo(bx - 20, by + r + 60, bx + 24, by + r + 110, bx, by + r + 170); g.stroke();
+    g.fillStyle = '#e0262f'; g.lineWidth = 6;
+    g.beginPath(); g.ellipse(bx, by, r * 0.86, r, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.ellipse(bx - r * 0.32, by - r * 0.38, r * 0.16, r * 0.24, -0.5, 0, Math.PI * 2); g.fill();
+  };
+  const key = (x, y, label) => {
+    g.fillStyle = '#fff'; g.strokeStyle = ink; g.lineWidth = 6;
+    g.beginPath(); g.roundRect ? g.roundRect(x, y, 150, 150, 22) : g.rect(x, y, 150, 150); g.fill(); g.stroke();
+    g.lineWidth = 10; g.beginPath(); g.moveTo(x + 14, y + 152); g.lineTo(x + 136, y + 152); g.stroke();
+    g.fillStyle = ink; g.font = '800 86px ' + fam; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(label, x + 75, y + 72);
+  };
+
+  if (page.titre) {
+    panel(M, M, W - 2 * M, H - 2 * M, '#8ccbeb', (x, y, w, h) => {
+      sky(x, y, w, h, true);
+      balloon(x + w * 0.62, y + h * 0.5, 90);
+      g.fillStyle = ink; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      const lines = wrap(page.titre, w - 220, 104, 800);
+      g.save(); g.translate(x + 60, y + 270); g.rotate(-0.04);
+      lines.forEach((l, i) => g.fillText(l, 0, i * 112));
+      g.restore();
+      caption(page.sous, x + 60, y + h - 210, 520);
+    });
+    return;
+  }
+  if (page.fin) {
+    panel(M, M, W - 2 * M, H - 2 * M, '#8ccbeb', (x, y, w, h) => {
+      sky(x, y, w, h, true);
+      balloon(x + w * 0.5, y + h * 0.66, 70);
+      g.fillStyle = ink; g.font = '800 220px ' + fam; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+      g.save(); g.translate(x + w / 2, y + h * 0.36); g.rotate(-0.05); g.fillText('Fin', 0, 0); g.restore();
+      caption('À vous de lire !', x + w / 2 - 170, y + h * 0.42, 340);
+    });
+    return;
+  }
+  const h1 = Math.round((H - 2 * M - gut) * 0.48), y2 = M + h1 + gut, h2 = H - M - y2;
+  const fills = ['#fff', '#8ccbeb', '#ffcf3f', '#fff'];
+  panel(M, M, W - 2 * M, h1, n % 2 ? '#fff' : '#ffcf3f', (x, y, w, h) => {
+    if (n % 2) sky(x, y, w, h, false);
+    const [t, kind] = page.cases[0];
+    if (kind === 'cap') { caption(t, x + 40, y + 40, w - 80); balloon(x + w * 0.72, y + h * 0.58, 64); }
+    else { bubble(t, x + w * 0.42, y + h * 0.42, w * 0.7, h * 0.66, [x + w * 0.26, y + h * 0.92]); balloon(x + w * 0.86, y + h * 0.62, 54); }
+  });
+  const wl = Math.round((W - 2 * M - gut) * 0.58);
+  panel(M, y2, wl, h2, fills[n % 4] === '#fff' ? '#8ccbeb' : '#fff', (x, y, w, h) => {
+    const [t, kind] = page.cases[1];
+    if (kind === 'cap') caption(t, x + 30, y + 30, w - 60);
+    else bubble(t, x + w / 2, y + h * 0.44, w - 40, h * 0.72, [x + w * 0.66, y + h - 18]);
+  });
+  panel(M + wl + gut, y2, W - 2 * M - wl - gut, h2, '#ffcf3f', (x, y, w, h) => {
+    g.strokeStyle = ink; g.fillStyle = ink; g.lineWidth = 8;
+    const cx = x + w / 2, cy = y + h / 2;
+    switch (page.deco) {
+      case 'fleche':
+        g.beginPath(); g.moveTo(cx, cy - 150); g.lineTo(cx, cy + 120); g.stroke();
+        g.beginPath(); g.moveTo(cx - 70, cy + 50); g.lineTo(cx, cy + 130); g.lineTo(cx + 70, cy + 50); g.stroke();
+        break;
+      case 'touches': key(cx - 75, cy - 190, '←'); key(cx - 75, cy + 20, '→'); break;
+      case 'loupe':
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - 20, cy - 30, 95, 0, Math.PI * 2); g.fill(); g.stroke();
+        g.lineWidth = 22; g.beginPath(); g.moveTo(cx + 50, cy + 40); g.lineTo(cx + 130, cy + 130); g.stroke();
+        g.fillStyle = ink; g.font = '800 120px ' + fam; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('+', cx - 20, cy - 26);
+        break;
+      case 'cadre':
+        g.lineWidth = 10;
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => {
+          g.beginPath(); g.moveTo(cx + sx * 110, cy + sy * 50); g.lineTo(cx + sx * 110, cy + sy * 120); g.lineTo(cx + sx * 40, cy + sy * 120); g.stroke();
+        });
+        key(cx - 75, cy - 75, 'F');
+        break;
+      case 'compteur':
+        g.fillStyle = '#fff'; g.fillRect(cx - 120, cy - 50, 240, 100); g.lineWidth = 6; g.strokeRect(cx - 120, cy - 50, 240, 100);
+        g.fillStyle = ink; g.font = '800 56px ' + fam; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText((n + 1) + ' / ' + DEMO.length, cx, cy + 2);
+        break;
+      case 'livres':
+        [['#e0262f', -110], ['#8ccbeb', 0], ['#fff', 110]].forEach(([col, dx], k) => {
+          g.fillStyle = col; g.lineWidth = 6;
+          g.fillRect(cx + dx - 45, cy - 120 + k * 12, 90, 240); g.strokeRect(cx + dx - 45, cy - 120 + k * 12, 90, 240);
+          g.beginPath(); g.moveTo(cx + dx - 25, cy - 70 + k * 12); g.lineTo(cx + dx + 25, cy - 70 + k * 12); g.stroke();
+        });
+        break;
+    }
+  });
+}
+
+$('#btn-demo').addEventListener('click', async () => {
+  const b = $('#btn-demo');
+  b.disabled = true;
+  Loading.show("Dessin de la BD d'essai…");
+  try {
+    const file = await makeDemo();
+    await openFiles([file], { key: 'demo', title: "BD d'essai", noLibrary: true });
+  } catch (e) { Loading.hide(); showError(e); }
+  finally { b.disabled = false; }
+});
+
+// petit point d'accès pour les tests automatisés
+window.__planches = { openFiles, Reader, makeDemo, PdfBook, RarBook, Library };
+})();
+</script>
+</body>
+</html>
