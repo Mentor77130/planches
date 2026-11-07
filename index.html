@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Planches – lecteur de BD CBZ, CBR et PDF</title>
-<meta name="description" content="Lisez vos BD, mangas et PDF d'un seul défilement, en plein écran, sur ordinateur, iPhone et Android. Fichiers CBZ, CBR, CBT et PDF, depuis votre appareil, Google Drive ou iCloud Drive. Rien n'est envoyé sur internet.">
+<meta name="description" content="Lisez vos BD, mangas et PDF d'un seul défilement, en plein écran, sur ordinateur, iPhone et Android. Fichiers CBZ, CBR, CBT et PDF, depuis votre appareil ou Google Drive. Rien n'est envoyé sur internet.">
 <meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icone-180.png">
@@ -126,7 +126,7 @@ h1, h2, p { margin: 0; }
 
 .case-depot {
   grid-column: 1 / 5;
-  grid-row: 2 / 4;
+  grid-row: span 2;
   background: var(--ciel);
   min-height: 430px;
   display: flex;
@@ -219,8 +219,7 @@ body.survol .bulle { transform: scale(1.05) rotate(-1deg); }
   .installer { margin-left: 0; }
 }
 
-.case-drive { grid-column: 5 / 7; background: var(--soleil); }
-.case-icloud { grid-column: 5 / 7; }
+.case-drive { grid-column: 5 / 7; grid-row: span 2; background: var(--soleil); }
 .case-demo { grid-column: 1 / 3; background: var(--rouge); color: var(--papier); display: flex; flex-direction: column; justify-content: space-between; }
 .case-clavier { grid-column: 3 / 7; }
 .touches { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; }
@@ -302,8 +301,7 @@ kbd {
 
 @media (max-width: 980px) {
   .case-depot { grid-column: 1 / -1; grid-row: auto; min-height: 380px; }
-  .case-drive { grid-column: 1 / 4; }
-  .case-icloud { grid-column: 4 / 7; }
+  .case-drive { grid-column: 1 / -1; grid-row: auto; }
   .case-demo { grid-column: 1 / 3; }
   .case-clavier { grid-column: 3 / 7; }
 }
@@ -315,13 +313,13 @@ kbd {
   .case-titre { flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 16px 16px; }
   .logo { font-size: clamp(56px, 19vw, 80px); }
   .recitatif { font-size: 16px; max-width: none; }
-  .case-depot, .case-drive, .case-icloud, .case-demo, .case-clavier { grid-column: 1 / -1; }
+  .case-depot, .case-drive, .case-demo, .case-clavier { grid-column: 1 / -1; }
   .case-depot { min-height: 0; padding: 22px 12px 42px; }
   .case-depot .decor circle { display: none; }
   .bulle { padding: 24px 18px 26px; border-radius: 34px; }
   .bulle h2 { font-size: 27px; }
   /* sur téléphone, les boutons d'ouverture prennent toute la largeur : faciles à toucher au pouce */
-  .bulle .btn, .case-drive .btn, .case-icloud .btn { width: 100%; justify-content: center; min-height: 52px; font-size: 18px; }
+  .bulle .btn, .case-drive .btn { width: 100%; justify-content: center; min-height: 52px; font-size: 18px; }
   .case-demo { flex-direction: row; align-items: center; gap: 14px; flex-wrap: wrap; }
   .case-demo h2 { margin: 0; flex: 1 1 160px; }
   .case-demo .btn { margin-top: 0; min-height: 48px; }
@@ -638,26 +636,6 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
           <li>Touchez la BD&nbsp;: elle s'ouvre aussitôt.</li>
         </ol>
       </div>
-      </div>
-    </section>
-
-    <section class="case case-icloud" aria-labelledby="icloud-titre">
-      <h2 id="icloud-titre">iCloud Drive</h2>
-      <div class="pour-ios">
-        <p>Apple ne permet à aucun site web d'afficher directement votre iCloud Drive. Vos BD qui s'y trouvent s'ouvrent par le sélecteur de fichiers de <span data-appareil>l'iPhone</span>&nbsp;:</p>
-        <button class="btn" id="btn-icloud-ios" type="button" data-choisir>Ouvrir depuis iCloud Drive</button>
-        <ol class="etapes">
-          <li>Touchez «&nbsp;Choisir le fichier&nbsp;».</li>
-          <li data-lieu="iCloud Drive">Touchez «&nbsp;Parcourir&nbsp;», puis «&nbsp;iCloud Drive&nbsp;».</li>
-        </ol>
-      </div>
-      <div class="pour-android">
-        <p>iCloud Drive n'existe pas sur Android. Téléchargez la BD depuis icloud.com, puis ouvrez-la ici avec «&nbsp;Choisir un fichier&nbsp;», dans «&nbsp;Téléchargements&nbsp;».</p>
-        <a class="btn" href="https://www.icloud.com/iclouddrive/" target="_blank" rel="noopener">Aller sur icloud.com</a>
-      </div>
-      <div class="pour-ordi">
-        <p>Apple ne permet à aucun site web d'afficher directement votre iCloud Drive. Sur Mac, il apparaît dans le sélecteur de fichiers&nbsp;; sur Windows, une fois l'app iCloud installée.</p>
-        <button class="btn" id="btn-icloud" type="button" data-choisir>Ouvrir depuis iCloud</button>
       </div>
     </section>
 
@@ -2272,7 +2250,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 window.addEventListener('pagehide', () => Reader.savePos());
 
 // ====================================================================
-//  Accueil : fichiers, glisser-déposer, iCloud
+//  Accueil : fichiers, glisser-déposer
 // ====================================================================
 const input = $('#fichier');
 // Sur iPhone et Android : un seul fichier à la fois et aucun filtre de type.
@@ -2847,7 +2825,7 @@ const DEMO = [
   { cases: [['Envie de détails ?', 'cap'], ['Zoomez avec + et −, Ctrl + molette, ou en pinçant l\'écran.', 'bulle']], deco: 'loupe' },
   { cases: [['La touche F passe en plein écran.', 'bulle'], ['Échap pour en sortir.', 'cap']], deco: 'cadre' },
   { cases: [['Touchez ou cliquez la page : les commandes apparaissent ou s\'effacent.', 'bulle'], ['Le compteur en bas indique où vous en êtes.', 'cap']], deco: 'compteur' },
-  { cases: [['Vos BD maintenant ?', 'cap'], ['CBZ, CBR ou PDF, depuis l\'appareil, Google Drive ou iCloud Drive.', 'bulle']], deco: 'livres' },
+  { cases: [['Vos BD maintenant ?', 'cap'], ['CBZ, CBR ou PDF, depuis l\'appareil ou Google Drive.', 'bulle']], deco: 'livres' },
   { fin: true },
 ];
 
