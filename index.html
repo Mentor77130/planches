@@ -240,6 +240,7 @@ kbd {
   background: var(--papier);
 }
 .pied { max-width: 1120px; margin: 0 auto; padding: 0 20px 28px; font-size: 14px; }
+.pied a { color: inherit; text-underline-offset: 3px; white-space: nowrap; }
 @media (max-width: 680px) { .pied { padding: 0 16px 24px; } }
 
 .btn {
@@ -681,7 +682,7 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
       </ul>
     </section>
   </div>
-  <p class="pied">Formats lus&nbsp;: CBZ, CBR (RAR 3, 4 et 5), CBT, PDF, ainsi que des images seules (JPEG, PNG, WebP, GIF, AVIF).</p>
+  <p class="pied">Formats lus&nbsp;: CBZ, CBR (RAR 3, 4 et 5), CBT, PDF, ainsi que des images seules (JPEG, PNG, WebP, GIF, AVIF). <a href="confidentialite.html">Confidentialité</a></p>
 </main>
 
 <div id="reader" hidden tabindex="-1">
@@ -805,8 +806,8 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
 <!-- Le champ reste dans la page (invisible, pas display:none) : iOS et Android l'ouvrent ainsi de façon fiable. -->
 <input type="file" id="fichier" class="sr" tabindex="-1" aria-hidden="true">
 
-<script src="config.js?v=202611072124"></script>
-<script src="formats.js?v=202611072124"></script>
+<script src="config.js?v=202611072147"></script>
+<script src="formats.js?v=202611072147"></script>
 <script>
 (() => {
 'use strict';
@@ -1114,7 +1115,7 @@ class RarBook extends Book {
   static open(file) {
     return new Promise((resolve, reject) => {
       let worker;
-      try { worker = new Worker('rar-worker.js?v=202611072124'); }
+      try { worker = new Worker('rar-worker.js?v=202611072147'); }
       catch (e) { RarBook.openInline(file).then(resolve, reject); return; }
       const book = new RarBook(titleFrom(file.name));
       const id = ++workerSeq;
