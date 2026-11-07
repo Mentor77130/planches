@@ -7,7 +7,7 @@
 <meta name="description" content="Lisez vos BD, mangas et PDF d'un seul défilement, en plein écran, sur ordinateur, iPhone et Android. Fichiers CBZ, CBR, CBT et PDF, depuis votre appareil, Google Drive ou iCloud Drive. Rien n'est envoyé sur internet.">
 <meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icones/icone-180.png">
+<link rel="apple-touch-icon" href="icone-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Planches">
@@ -18,12 +18,12 @@
 <meta property="og:title" content="Planches, le lecteur de BD qui se lit d'un seul défilement">
 <meta property="og:description" content="CBZ, CBR et PDF en plein écran, sur ordinateur, iPhone et Android. Gratuit, sans compte, rien n'est envoyé sur internet.">
 <meta property="og:url" content="https://mentor77130.github.io/planches/">
-<meta property="og:image" content="https://mentor77130.github.io/planches/icones/partage.png">
+<meta property="og:image" content="https://mentor77130.github.io/planches/partage.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://mentor77130.github.io/planches/">
-<link rel="icon" type="image/png" sizes="32x32" href="icones/icone-32.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icone-32.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%272%27 y=%272%27 width=%2728%27 height=%2728%27 fill=%27%23ffcf3f%27 stroke=%27%23000%27 stroke-width=%273%27/%3E%3Cpath d=%27M2 14h28M14 14v16%27 stroke=%27%23000%27 stroke-width=%273%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -791,7 +791,7 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
 <!-- Le champ reste dans la page (invisible, pas display:none) : iOS et Android l'ouvrent ainsi de façon fiable. -->
 <input type="file" id="fichier" class="sr" tabindex="-1" aria-hidden="true">
 
-<script src="js/formats.js?v=202611071626"></script>
+<script src="formats.js?v=202611071647"></script>
 <script>
 (() => {
 'use strict';
@@ -1021,7 +1021,7 @@ function loadPako() {
   if (!pakoPromise) {
     pakoPromise = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = 'vendor/pako_inflate.min.js';
+      s.src = 'pako_inflate.min.js';
       s.onload = () => resolve(window.pako);
       s.onerror = () => reject(new BookError('Décompression ZIP indisponible dans ce navigateur.'));
       document.head.appendChild(s);
@@ -1099,7 +1099,7 @@ class RarBook extends Book {
   static open(file) {
     return new Promise((resolve, reject) => {
       let worker;
-      try { worker = new Worker('js/rar-worker.js?v=202611071626'); }
+      try { worker = new Worker('rar-worker.js?v=202611071647'); }
       catch (e) { RarBook.openInline(file).then(resolve, reject); return; }
       const book = new RarBook(titleFrom(file.name));
       const id = ++workerSeq;
@@ -1247,8 +1247,8 @@ RarBook.budget = isMobile ? 160e6 : 900e6;
 let pdfjsPromise = null;
 function loadPdfjs() {
   if (!pdfjsPromise) {
-    pdfjsPromise = import(new URL('vendor/pdfjs/pdf.min.js', document.baseURI).href).then((m) => {
-      m.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.min.js', document.baseURI).href;
+    pdfjsPromise = import(new URL('pdf.min.js', document.baseURI).href).then((m) => {
+      m.GlobalWorkerOptions.workerSrc = new URL('pdf.worker.min.js', document.baseURI).href;
       return m;
     }).catch((e) => { pdfjsPromise = null; throw new BookError("Le lecteur PDF n'a pas pu se charger (" + (e && e.message || e) + ').'); });
   }
@@ -1270,10 +1270,11 @@ function pdfRangeClass(pdfjs) {
 class PdfBook extends Book {
   static async open(file) {
     const pdfjs = await loadPdfjs();
-    const base = new URL('vendor/pdfjs/', document.baseURI).href;
+    // tous les fichiers du site sont au même niveau (dépôt GitHub sans dossiers)
+    const base = new URL('./', document.baseURI).href;
     const common = {
-      cMapUrl: base + 'cmaps/', cMapPacked: true, standardFontDataUrl: base + 'standard_fonts/',
-      wasmUrl: base + 'wasm/', iccUrl: base + 'iccs/', isEvalSupported: false, enableXfa: false,
+      cMapUrl: base + 'cmaps/', cMapPacked: true, standardFontDataUrl: base,
+      wasmUrl: base, iccUrl: base, isEvalSupported: false, enableXfa: false,
     };
     const attempt = async (byRange) => {
       const src = byRange
