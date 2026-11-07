@@ -1,16 +1,16 @@
 /* Planches — fonctionnement hors ligne.
  * La page et ses scripts restent disponibles sans réseau ; les BD, elles, sont gardées par la page
  * dans IndexedDB. Chaque déploiement change VERSION : l'ancien cache est alors effacé. */
-const VERSION = 'planches-202611071626';
+const VERSION = 'planches-202611071647';
 const VENDOR = 'planches-vendor-1'; // pdf.js et pako : ne changent pas d'une version à l'autre
 const SHELL = [
   './',
   'manifest.webmanifest',
-  'js/formats.js?v=202611071626',
-  'js/rar-worker.js?v=202611071626',
-  'vendor/pako_inflate.min.js',
-  'icones/icone-32.png',
-  'icones/icone-192.png',
+  'formats.js?v=202611071647',
+  'rar-worker.js?v=202611071647',
+  'pako_inflate.min.js',
+  'icone-32.png',
+  'icone-192.png',
 ];
 
 self.addEventListener('install', (e) => {
@@ -57,7 +57,7 @@ self.addEventListener('fetch', (e) => {
   }
 
   // scripts, polices, icônes : d'abord le cache (leur adresse change à chaque version)
-  const bucket = same && url.pathname.includes('/vendor/') ? VENDOR : VERSION;
+  const bucket = same && /(pdf(\.worker)?\.min\.js|pako_inflate\.min\.js|\.wasm|\.pfb|\.ttf|\.icc|\.bcmap)$/.test(url.pathname) ? VENDOR : VERSION;
   e.respondWith(
     caches.match(req).then((hit) => hit || fetch(req).then((res) => keep(bucket, req, res))),
   );
