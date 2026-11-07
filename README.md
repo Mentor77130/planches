@@ -24,5 +24,5 @@ Les fichiers ne quittent jamais l'appareil : tout est décodé dans le navigateu
 
 ## Logiciels tiers
 
-- [pdf.js](https://github.com/mozilla/pdf.js), Mozilla, licence Apache 2.0 (`LICENSE.txt`)
-- [pako](https://github.com/nodeca/pako), licence MIT (`pako-LICENSE.txt`)
+- [pdf.js](https://github.com/mozilla/pdf.js), Mozilla, licence Apache 2.0 (`vendor/pdfjs/LICENSE.txt`)
+- [pako](https://github.com/nodeca/pako), licence MIT (`vendor/pako-LICENSE.txt`)
