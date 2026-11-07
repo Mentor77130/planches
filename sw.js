@@ -1,13 +1,14 @@
 /* Planches — fonctionnement hors ligne.
  * La page et ses scripts restent disponibles sans réseau ; les BD, elles, sont gardées par la page
  * dans IndexedDB. Chaque déploiement change VERSION : l'ancien cache est alors effacé. */
-const VERSION = 'planches-202611071647';
+const VERSION = 'planches-202611072124';
 const VENDOR = 'planches-vendor-1'; // pdf.js et pako : ne changent pas d'une version à l'autre
 const SHELL = [
   './',
   'manifest.webmanifest',
-  'formats.js?v=202611071647',
-  'rar-worker.js?v=202611071647',
+  'config.js?v=202611072124',
+  'formats.js?v=202611072124',
+  'rar-worker.js?v=202611072124',
   'pako_inflate.min.js',
   'icone-32.png',
   'icone-192.png',
