@@ -2596,8 +2596,8 @@ const GoogleDrive = {
       this.onError = (err) => {
         const type = err && err.type;
         reject(Object.assign(new BookError(type === 'popup_failed_to_open'
-          ? 'Votre navigateur a bloqué la fenêtre de connexion à Google. Touchez « Réessayer » pour l\'ouvrir.'
-          : 'La connexion à Google a été interrompue.'), { code: type, retry: type === 'popup_failed_to_open' ? () => openGoogleDrive() : null }));
+          ? 'Votre navigateur a bloqué la fenêtre de connexion à Google.'
+          : 'La connexion à Google a été interrompue.'), { code: type }));
       };
       this.client.requestAccessToken({ prompt: '' });
     });
@@ -2682,6 +2682,12 @@ async function openGoogleDrive(known) {
   } catch (e) {
     Loading.hide();
     if (e && e.code === 'popup_closed') return;
+    if (e && e.code === 'popup_failed_to_open') {
+      // la fenêtre de Google ne s'ouvre que sur un toucher ou un clic : Google est prêt, un second geste suffit
+      const geste = document.body.classList.contains('tactile') ? 'Touchez' : 'Cliquez sur';
+      showMessage('Google Drive est prêt', geste + ' «' + NB + 'Se connecter à Google' + NB + '» pour choisir votre compte.', 'Se connecter à Google', () => openGoogleDrive(known));
+      return;
+    }
     showError(e, 'Google Drive');
     return;
   }
@@ -2711,6 +2717,8 @@ async function openGoogleDrive(known) {
   } catch (e) {
     Loading.hide();
     if (e && e.name === 'AbortError') return;
+    // « Réessayer » reprend le même fichier, sans repasser par le sélecteur
+    if (e && e.retry) e.retry = () => openGoogleDrive({ id: doc.id, name: doc.name, mimeType: doc.mimeType, sizeBytes: doc.sizeBytes, title });
     showError(e, 'Google Drive');
   }
 }
@@ -2718,8 +2726,10 @@ if (GoogleDrive.enabled) {
   document.body.classList.add('drive-google');
   const btn = $('#btn-gdrive');
   btn.addEventListener('click', () => openGoogleDrive());
-  // dès qu'on s'approche du bouton, on prépare Google : la fenêtre de connexion s'ouvrira sans être bloquée
-  for (const ev of ['pointerenter', 'touchstart', 'focus']) btn.addEventListener(ev, () => { GoogleDrive.load().catch(() => {}); }, { passive: true, once: true });
+  // dès qu'on survole ou touche le cadre Google Drive, on prépare Google : au toucher du bouton,
+  // la fenêtre de connexion s'ouvre aussitôt, sans être bloquée par le navigateur
+  const cadre = btn.closest('.case-drive') || btn;
+  for (const ev of ['pointerenter', 'touchstart', 'focusin']) cadre.addEventListener(ev, () => { GoogleDrive.load().catch(() => {}); }, { passive: true, once: true });
 }
 
 let coverUrls = [];
