@@ -1,14 +1,14 @@
 /* Planches — fonctionnement hors ligne.
  * La page et ses scripts restent disponibles sans réseau ; les BD, elles, sont gardées par la page
  * dans IndexedDB. Chaque déploiement change VERSION : l'ancien cache est alors effacé. */
-const VERSION = 'planches-202611072124';
+const VERSION = 'planches-202611072147';
 const VENDOR = 'planches-vendor-1'; // pdf.js et pako : ne changent pas d'une version à l'autre
 const SHELL = [
   './',
   'manifest.webmanifest',
-  'config.js?v=202611072124',
-  'formats.js?v=202611072124',
-  'rar-worker.js?v=202611072124',
+  'config.js?v=202611072147',
+  'formats.js?v=202611072147',
+  'rar-worker.js?v=202611072147',
   'pako_inflate.min.js',
   'icone-32.png',
   'icone-192.png',
@@ -47,12 +47,14 @@ self.addEventListener('fetch', (e) => {
   const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (!same && !fonts) return;
 
-  // la page : la plus récente si le réseau répond, sinon celle gardée
+  // les pages : la plus récente si le réseau répond, sinon celle gardée
   if (req.mode === 'navigate') {
+    const accueil = /\/(index\.html)?$/.test(url.pathname);
+    const cle = accueil ? './' : req;
     e.respondWith(
       fetch(req)
-        .then((res) => keep(VERSION, './', res))
-        .catch(() => caches.match('./', { cacheName: VERSION }).then((r) => r || caches.match('./'))),
+        .then((res) => keep(VERSION, cle, res))
+        .catch(() => caches.match(cle, { cacheName: VERSION }).then((r) => r || caches.match(cle)).then((r) => r || caches.match('./'))),
     );
     return;
   }
