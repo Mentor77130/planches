@@ -222,6 +222,11 @@ body.survol .bulle { transform: scale(1.05) rotate(-1deg); }
 .case-drive { grid-column: 5 / 7; grid-row: span 2; background: var(--soleil); }
 .case-demo { grid-column: 1 / 3; background: var(--rouge); color: var(--papier); display: flex; flex-direction: column; justify-content: space-between; }
 .case-clavier { grid-column: 3 / 7; }
+.case-mac { grid-column: 1 / -1; background: var(--ciel); }
+.case-mac .etapes { max-width: 680px; }
+.case-mac .petit { margin-top: 12px; }
+.case-mac:not([data-nav="safari"]) .mac-safari, .case-mac:not([data-nav="chrome"]) .mac-chrome,
+.case-mac:not([data-nav="autre"]) .mac-autre { display: none !important; }
 .touches { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; }
 .touches li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 kbd {
@@ -659,6 +664,22 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
         <li>Touchez une fois pour afficher les commandes.</li>
       </ul>
     </section>
+
+    <section class="case case-mac" id="case-mac" aria-labelledby="mac-titre" hidden>
+      <h2 id="mac-titre">Planches en application sur votre Mac</h2>
+      <p>Installée, Planches s'ouvre depuis le Dock dans sa propre fenêtre et fonctionne sans internet pour les BD ouvertes depuis le Mac ou déjà gardées sur l'étagère.</p>
+      <ol class="etapes mac-safari">
+        <li>Dans la barre des menus de Safari, ouvrez «&nbsp;Fichier&nbsp;».</li>
+        <li>Choisissez «&nbsp;Ajouter au Dock…&nbsp;».</li>
+        <li>Cliquez sur «&nbsp;Ajouter&nbsp;»&nbsp;: Planches arrive dans le Dock et dans le dossier Applications.</li>
+      </ol>
+      <p class="petit mac-safari">Avec macOS Sonoma (14) ou plus récent.</p>
+      <div class="mac-chrome">
+        <button class="btn btn-noir" id="btn-installer-mac" type="button" hidden>Installer l'application</button>
+        <p class="petit">Ou cliquez sur l'icône d'installation, à droite de la barre d'adresse.</p>
+      </div>
+      <p class="mac-autre">Ouvrez cette page dans Safari, puis choisissez «&nbsp;Fichier&nbsp;», «&nbsp;Ajouter au Dock…&nbsp;».</p>
+    </section>
   </div>
   <p class="pied">Formats lus&nbsp;: CBZ, CBR (RAR 3, 4 et 5), CBT, PDF, ainsi que des images seules (JPEG, PNG, WebP, GIF, AVIF). <a href="confidentialite.html">Confidentialité</a></p>
 </main>
@@ -784,8 +805,8 @@ body.tactile #curseur::-moz-range-thumb { width: 26px; height: 26px; border-radi
 <!-- Le champ reste dans la page (invisible, pas display:none) : iOS et Android l'ouvrent ainsi de façon fiable. -->
 <input type="file" id="fichier" class="sr" tabindex="-1" aria-hidden="true">
 
-<script src="config.js?v=202611072147"></script>
-<script src="formats.js?v=202611072147"></script>
+<script src="config.js?v=202611251308"></script>
+<script src="formats.js?v=202611251308"></script>
 <script>
 (() => {
 'use strict';
@@ -1093,7 +1114,7 @@ class RarBook extends Book {
   static open(file) {
     return new Promise((resolve, reject) => {
       let worker;
-      try { worker = new Worker('rar-worker.js?v=202611072147'); }
+      try { worker = new Worker('rar-worker.js?v=202611251308'); }
       catch (e) { RarBook.openInline(file).then(resolve, reject); return; }
       const book = new RarBook(titleFrom(file.name));
       const id = ++workerSeq;
@@ -2770,15 +2791,25 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   installPrompt = e;
   $('#btn-installer').hidden = false;
+  $('#btn-installer-mac').hidden = false;
 });
-$('#btn-installer').addEventListener('click', async () => {
+async function installer() {
   if (!installPrompt) return;
   const p = installPrompt;
   installPrompt = null;
   $('#btn-installer').hidden = true;
+  $('#btn-installer-mac').hidden = true;
   try { await p.prompt(); } catch (e) { /* refusé */ }
-});
-window.addEventListener('appinstalled', () => { $('#btn-installer').hidden = true; });
+}
+$('#btn-installer').addEventListener('click', installer);
+$('#btn-installer-mac').addEventListener('click', installer);
+window.addEventListener('appinstalled', () => { $('#btn-installer').hidden = true; $('#case-mac').hidden = true; });
+// Mac : installer Planches comme une application (Safari « Ajouter au Dock », Chrome, Edge)
+if (!isIOS && /Macintosh/.test(UA) && !standalone) {
+  const c = $('#case-mac');
+  c.dataset.nav = /Edg\/|Chrome\/|Chromium\//.test(UA) ? 'chrome' : (/Safari\//.test(UA) && !/Firefox\//.test(UA) ? 'safari' : 'autre');
+  c.hidden = false;
+}
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
